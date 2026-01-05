@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(dart run build_runner:*)",
+      "Bash(dir /S /B \"c:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\*.dart\")",
+      "Bash(flutter pub cache clean:*)",
+      "Bash(flutter pub run build_runner build:*)",
+      "Bash(flutter clean:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__deploy_edge_function",
+      "mcp__supabase__list_edge_functions",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__get_edge_function",
+      "mcp__supabase__get_logs",
+      "Bash(flutter build:*)",
+      "Bash(copy \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\windows\\\\runner\\\\resources\\\\app_icon.ico\" \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\assets\\\\icons\\\\app_icon.ico\")",
+      "Bash(del \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\domain\\\\interfaces\\\\logger.dart\")",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\main\\\\home\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\main\\\\dashboard\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\main\\\\profile\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\main\\\\settings\")",
+      "Bash(del \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\splash_screen.dart\")",
+      "Bash(Remove-Item -Force \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\login_screen.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\login_view_model.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\login_view_model.freezed.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\login_view_model.g.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\signup_screen.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\signup_view_model.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\signup_view_model.freezed.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\signup_view_model.g.dart\", \"C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\lib\\\\presentation\\\\pages\\\\splash\\\\email_verification_screen.dart\")",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__search_docs",
+      "mcp__supabase__list_extensions",
+      "Bash(fvm flutter pub:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(fvm install:*)",
+      "Bash(where:*)",
+      "Bash(dir \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2019\\\\Professional\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2019\\\\Professional\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\" -S C:kisaneiScan_Keeperflutterwindow_appwindows -B C:kisaneiScan_Keeperflutterwindow_appbuildwindowsx64 -G \"Visual Studio 16 2019\" -A x64)",
+      "Bash(cmd /c \"\"\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2019\\\\Professional\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\"\" -S C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\windows -B C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\build\\\\windows\\\\x64 -G \"\"Visual Studio 16 2019\"\" -A x64\")",
+      "Bash(powershell:*)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2019\\\\Professional\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\" --version)",
+      "Bash(cmd /c \"\"\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2019\\\\Professional\\\\Common7\\\\Tools\\\\VsDevCmd.bat\"\" -no_logo && cmake --version && cmake -S C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\windows -B C:\\\\kisane\\\\iScan_Keeper\\\\flutter\\\\window_app\\\\build\\\\windows\\\\x64 -G \"\"Visual Studio 16 2019\"\" -A x64\")",
+      "Bash(fvm flutter doctor:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
