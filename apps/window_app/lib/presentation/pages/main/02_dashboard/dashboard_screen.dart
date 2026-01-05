@@ -90,7 +90,7 @@ class DashboardScreen extends BasePage {
     return Stack(
       children: [
         InAppWebView(
-          initialUrlRequest: URLRequest(url: WebUri('https://www.naver.com')),
+          initialUrlRequest: URLRequest(url: WebUri('http://58.238.37.52:60500')),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: true,
             domStorageEnabled: true,
