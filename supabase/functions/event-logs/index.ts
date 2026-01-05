@@ -9,10 +9,10 @@ const corsHeaders = {
 
 interface EventLogRequest {
   source: string;
+  eventType?: 'event' | 'health_check';
   errorCode?: string;
   logLevel?: string;
   payload?: Record<string, unknown>;
-  // 기존 machine 호환용 필드들 (payload로 자동 변환)
   [key: string]: unknown;
 }
 
@@ -31,7 +31,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Supabase 클라이언트 생성
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -47,7 +46,6 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 요청 본문 파싱
     let body: EventLogRequest;
     try {
       body = await req.json();
@@ -58,7 +56,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // source 필수 체크
     if (!body.source) {
       return new Response(
         JSON.stringify({
@@ -69,17 +66,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 예약 필드 추출
-    const { source, errorCode, logLevel, payload: explicitPayload, ...restFields } = body;
-
-    // payload 구성: 명시적 payload가 있으면 사용, 아니면 나머지 필드를 payload로
+    const { source, eventType, errorCode, logLevel, payload: explicitPayload, ...restFields } = body;
     const payload = explicitPayload || (Object.keys(restFields).length > 0 ? restFields : {});
 
-    // event_logs 테이블에 삽입
     const { data, error } = await supabase
       .from("event_logs")
       .insert({
         source: source,
+        event_type: eventType || "event",
         error_code: errorCode || null,
         log_level: logLevel || "info",
         payload: payload,
@@ -101,13 +95,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 성공 응답
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           id: data.id,
           source: data.source,
+          event_type: data.event_type,
           error_code: data.error_code,
           log_level: data.log_level,
           response_status: data.response_status,

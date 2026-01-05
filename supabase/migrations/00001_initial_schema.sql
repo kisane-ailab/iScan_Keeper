@@ -12,6 +12,9 @@ CREATE TYPE user_status AS ENUM ('available', 'busy', 'offline');
 -- 대응 상태 ENUM
 CREATE TYPE response_status AS ENUM ('unchecked', 'in_progress', 'completed');
 
+-- 이벤트 유형 ENUM
+CREATE TYPE event_type AS ENUM ('event', 'health_check');
+
 
 -- =============================================
 -- 2. 테이블 생성
@@ -33,6 +36,7 @@ COMMENT ON COLUMN users.status IS '상태: available(대기중), busy(대응중)
 CREATE TABLE event_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source VARCHAR NOT NULL,
+    event_type event_type DEFAULT 'event' NOT NULL,
     error_code VARCHAR,
     log_level VARCHAR DEFAULT 'info',
     payload JSONB DEFAULT '{}'::jsonb,
@@ -41,6 +45,7 @@ CREATE TABLE event_logs (
 );
 COMMENT ON TABLE event_logs IS '범용 이벤트/에러 로그';
 COMMENT ON COLUMN event_logs.source IS '로그 출처 (machine, web, app 등)';
+COMMENT ON COLUMN event_logs.event_type IS '로그 유형 (event: 단발 이벤트, health_check: 주기적 헬스체크)';
 COMMENT ON COLUMN event_logs.error_code IS '에러 코드';
 COMMENT ON COLUMN event_logs.log_level IS '로그 레벨 (info, warning, error)';
 COMMENT ON COLUMN event_logs.payload IS '상세 데이터 (JSONB)';
@@ -77,6 +82,7 @@ CREATE INDEX idx_users_status ON users(status);
 
 -- event_logs 인덱스
 CREATE INDEX idx_event_logs_source ON event_logs(source);
+CREATE INDEX idx_event_logs_event_type ON event_logs(event_type);
 CREATE INDEX idx_event_logs_error_code ON event_logs(error_code);
 CREATE INDEX idx_event_logs_log_level ON event_logs(log_level);
 CREATE INDEX idx_event_logs_created_at ON event_logs(created_at DESC);
