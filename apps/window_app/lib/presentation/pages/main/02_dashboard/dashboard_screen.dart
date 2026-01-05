@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:window_app/infrastructure/config/env_config.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
 import 'dashboard_view_model.dart';
@@ -90,7 +91,7 @@ class DashboardScreen extends BasePage {
     return Stack(
       children: [
         InAppWebView(
-          initialUrlRequest: URLRequest(url: WebUri('http://58.238.37.52:60500')),
+          initialUrlRequest: URLRequest(url: WebUri(EnvConfig.dashboardUrl)),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: true,
             domStorageEnabled: true,

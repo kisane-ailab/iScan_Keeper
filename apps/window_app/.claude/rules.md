@@ -1,5 +1,22 @@
 # 프로젝트 코딩 규칙
 
+## Architecture
+
+클린 아키텍처 4레이어 구조를 사용합니다. `core` 레이어는 사용하지 않습니다.
+
+```
+lib/
+├── data/           # 데이터 레이어 (datasources, models, repositories)
+├── domain/         # 도메인 레이어 (failures, services, usecases)
+├── infrastructure/ # 인프라 레이어 (config, network, supabase, logger)
+└── presentation/   # 프레젠테이션 레이어 (layout, pages, router)
+```
+
+- **data**: 외부 데이터 소스 접근, 모델 정의, Repository 구현
+- **domain**: 비즈니스 로직, UseCase, Service, Failure 정의
+- **infrastructure**: 외부 시스템 통합 (네트워크, DB, 환경설정, 로깅 등)
+- **presentation**: UI, ViewModel, 라우팅
+
 ## Import 규칙
 
 ### 필수: 절대경로(패키지) Import 사용

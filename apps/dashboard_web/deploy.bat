@@ -6,6 +6,24 @@ echo Next.js Deploy Script
 echo ========================================
 echo.
 
+:: 환경변수 로드 (최상단 .env 파일에서)
+set "ENV_FILE=..\..\.env"
+if exist "%ENV_FILE%" (
+    for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do (
+        set "line=%%a"
+        if not "!line:~0,1!"=="#" (
+            if not "%%a"=="" set "%%a=%%b"
+        )
+    )
+    echo Loaded environment from %ENV_FILE%
+) else (
+    echo Warning: %ENV_FILE% not found, using defaults
+    set "DASHBOARD_HOST=58.238.37.52"
+    set "DASHBOARD_PORT=60500"
+    set "DASHBOARD_URL=http://58.238.37.52:60500"
+)
+echo.
+
 :: 1. 빌드
 echo [1/5] Building...
 call npm run build
@@ -36,7 +54,7 @@ echo     print^("Installing paramiko..."^)
 echo     subprocess.check_call^([sys.executable, "-m", "pip", "install", "paramiko", "--quiet"]^)
 echo     import paramiko
 echo.
-echo server = "58.238.37.52"
+echo server = "!DASHBOARD_HOST!"
 echo username = "iscan"
 echo password = "KiSaN)@@@)$&*()"
 echo remote_path = "/home/iscan/Kisan/A31_Reco/iScanKeeper"
@@ -52,11 +70,11 @@ echo sftp.close^(^)
 echo print^("Upload successful!"^)
 echo.
 echo print^("Deploying..."^)
-echo deploy_cmd = f"cd {remote_path} && tar -xzf dashboard_standalone.tar.gz && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cd .next/standalone && pm2 delete dashboard-web 2^>/dev/null ^|^| true && PORT=60500 HOSTNAME=0.0.0.0 pm2 start server.js --name 'dashboard-web' && pm2 save"
+echo deploy_cmd = f"cd {remote_path} && tar -xzf dashboard_standalone.tar.gz && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cd .next/standalone && pm2 delete dashboard-web 2^>/dev/null ^|^| true && PORT=!DASHBOARD_PORT! HOSTNAME=0.0.0.0 pm2 start server.js --name 'dashboard-web' && pm2 save"
 echo stdin, stdout, stderr = ssh.exec_command^(deploy_cmd^)
 echo print^(stdout.read^(^).decode^(^)^)
 echo ssh.close^(^)
-echo print^("Done! http://58.238.37.52:60500"^)
+echo print^("Done! !DASHBOARD_URL!"^)
 ) > deploy_script.py
 
 :: 4. Python 스크립트 실행
@@ -75,6 +93,6 @@ del deploy_script.py
 
 echo.
 echo ========================================
-echo Done! http://58.238.37.52:60500
+echo Done! !DASHBOARD_URL!
 echo ========================================
 pause
