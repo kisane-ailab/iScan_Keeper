@@ -1,5 +1,5 @@
 import 'package:local_notifier/local_notifier.dart';
-import 'package:window_app/data/models/machine_log_model.dart';
+import 'package:window_app/data/models/event_log_model.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 
@@ -11,12 +11,12 @@ class NotificationHandler {
     );
   }
 
-  static Future<void> showMachineLogAlert(MachineLogModel log) async {
+  static Future<void> showEventLogAlert(EventLogModel log) async {
     final notification = LocalNotification(
       identifier: log.id,
       title: '긴급 알림 - 오류 발생!',
-      body: 'IP: ${log.ipAddress}:${log.portNumber}\n'
-          '상태 코드: ${log.statusCode}\n'
+      body: '출처: ${log.source}\n'
+          '에러 코드: ${log.errorCode ?? 'N/A'}\n'
           '시간: ${_formatTime(log.createdAt)}',
     );
 

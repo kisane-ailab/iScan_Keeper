@@ -44,7 +44,7 @@ final class AlertViewModelProvider
   }
 }
 
-String _$alertViewModelHash() => r'85488651ea8e4addf24b4c35093aa9d56687cfb8';
+String _$alertViewModelHash() => r'c94ce94075fc897410f3750ab94c041e41fa7cc5';
 
 /// Alert ViewModel
 

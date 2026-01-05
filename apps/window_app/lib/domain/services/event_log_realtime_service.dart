@@ -3,22 +3,22 @@ import 'dart:async';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:window_app/data/models/machine_log_model.dart';
+import 'package:window_app/data/models/event_log_model.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 
-part 'machine_log_realtime_service.g.dart';
+part 'event_log_realtime_service.g.dart';
 
 @Riverpod(keepAlive: true)
-class MachineLogRealtimeService extends _$MachineLogRealtimeService {
+class EventLogRealtimeService extends _$EventLogRealtimeService {
   RealtimeChannel? _channel;
-  final _alertController = StreamController<MachineLogModel>.broadcast();
+  final _alertController = StreamController<EventLogModel>.broadcast();
 
   Logger get _logger => ref.read(appLoggerProvider);
-  Stream<MachineLogModel> get alertStream => _alertController.stream;
+  Stream<EventLogModel> get alertStream => _alertController.stream;
 
   @override
-  List<MachineLogModel> build() {
+  List<EventLogModel> build() {
     _startListening();
     _fetchPendingAlerts();
 
@@ -31,15 +31,14 @@ class MachineLogRealtimeService extends _$MachineLogRealtimeService {
   }
 
   /// 기존 미확인 에러 로그 조회 (앱 시작 시)
-  /// 알림 센터에만 표시, Windows 알림은 뜨지 않음
   Future<void> _fetchPendingAlerts() async {
     try {
       final client = ref.read(supabaseClientProvider);
 
       final response = await client
-          .from('machine_logs')
+          .from('event_logs')
           .select()
-          .eq('status_code', 500)
+          .eq('log_level', 'error')
           .eq('response_status', 'unchecked')
           .order('created_at', ascending: false)
           .limit(10);
@@ -48,8 +47,7 @@ class MachineLogRealtimeService extends _$MachineLogRealtimeService {
 
       for (final record in response) {
         try {
-          final log = MachineLogModel.fromJson(record);
-          // 목록에만 추가 (Windows 알림 X)
+          final log = EventLogModel.fromJson(record);
           state = [log, ...state];
         } catch (e) {
           _logger.e('미확인 로그 파싱 오류', error: e);
@@ -64,11 +62,11 @@ class MachineLogRealtimeService extends _$MachineLogRealtimeService {
     final client = ref.read(supabaseClientProvider);
 
     _channel = client
-        .channel('machine_logs_realtime')
+        .channel('event_logs_realtime')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
-          table: 'machine_logs',
+          table: 'event_logs',
           callback: (payload) {
             _handleNewLog(payload.newRecord);
           },
@@ -78,17 +76,17 @@ class MachineLogRealtimeService extends _$MachineLogRealtimeService {
 
   void _handleNewLog(Map<String, dynamic> record) {
     try {
-      final log = MachineLogModel.fromJson(record);
+      final log = EventLogModel.fromJson(record);
 
       // 목록에 추가
       state = [log, ...state];
 
-      // status_code가 500이고 unchecked면 알림
-      if (log.statusCode == 500 && log.responseStatus == 'unchecked') {
+      // log_level이 error이고 unchecked면 알림
+      if (log.logLevel == 'error' && log.responseStatus == 'unchecked') {
         _alertController.add(log);
       }
     } catch (e) {
-      _logger.e('머신 로그 파싱 오류', error: e);
+      _logger.e('이벤트 로그 파싱 오류', error: e);
     }
   }
 
@@ -99,7 +97,7 @@ class MachineLogRealtimeService extends _$MachineLogRealtimeService {
 
 // 알림용 스트림 provider
 @Riverpod(keepAlive: true)
-Stream<MachineLogModel> machineLogAlerts(Ref ref) {
-  final service = ref.watch(machineLogRealtimeServiceProvider.notifier);
+Stream<EventLogModel> eventLogAlerts(Ref ref) {
+  final service = ref.watch(eventLogRealtimeServiceProvider.notifier);
   return service.alertStream;
 }

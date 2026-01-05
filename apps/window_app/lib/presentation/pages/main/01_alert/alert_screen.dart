@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:window_app/data/models/machine_log_model.dart';
+import 'package:window_app/data/models/event_log_model.dart';
 import 'package:window_app/infrastructure/notification/notification_handler.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
@@ -21,17 +21,17 @@ class AlertScreen extends BasePage {
   ]) {
     final viewModel = ref.read(alertViewModelProvider.notifier);
 
-    // 알림 스트림 구독 (status_code 500 + unchecked)
+    // 알림 스트림 구독 (log_level error + unchecked)
     final subscription = viewModel.alertStream.listen((log) {
       // Windows 알림 표시
-      NotificationHandler.showMachineLogAlert(log);
+      NotificationHandler.showEventLogAlert(log);
 
       // 인앱 스낵바 표시
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '긴급! ${log.ipAddress}:${log.portNumber} - 상태 코드 ${log.statusCode}',
+              '긴급! [${log.source}] ${log.errorCode ?? '오류 발생'}',
             ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
@@ -101,7 +101,7 @@ class AlertScreen extends BasePage {
             ),
             SizedBox(height: 8),
             Text(
-              'status_code 500 + unchecked 로그 발생 시 알림',
+              'log_level error + unchecked 로그 발생 시 알림',
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
@@ -136,7 +136,7 @@ class _LogCard extends StatelessWidget {
     required this.getResponseStatusLabel,
   });
 
-  final MachineLogModel log;
+  final EventLogModel log;
   final bool isAlert;
   final String Function(DateTime) formatTime;
   final String Function(String) getResponseStatusLabel;
@@ -153,7 +153,7 @@ class _LogCard extends StatelessWidget {
           size: 32,
         ),
         title: Text(
-          '${log.ipAddress}:${log.portNumber}',
+          '[${log.source}] ${log.errorCode ?? 'N/A'}',
           style: TextStyle(
             fontWeight: isAlert ? FontWeight.bold : FontWeight.normal,
           ),
@@ -161,7 +161,7 @@ class _LogCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('상태 코드: ${log.statusCode}'),
+            Text('로그 레벨: ${log.logLevel}'),
             Text(
               '응답 상태: ${getResponseStatusLabel(log.responseStatus)}',
               style: TextStyle(

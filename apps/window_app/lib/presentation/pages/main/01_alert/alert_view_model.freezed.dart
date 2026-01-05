@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AlertState {
 
- List<MachineLogModel> get logs; int get alertCount;
+ List<EventLogModel> get logs; int get alertCount;
 /// Create a copy of AlertState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $AlertStateCopyWith<$Res>  {
   factory $AlertStateCopyWith(AlertState value, $Res Function(AlertState) _then) = _$AlertStateCopyWithImpl;
 @useResult
 $Res call({
- List<MachineLogModel> logs, int alertCount
+ List<EventLogModel> logs, int alertCount
 });
 
 
@@ -65,7 +65,7 @@ class _$AlertStateCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') @override $Res call({Object? logs = null,Object? alertCount = null,}) {
   return _then(_self.copyWith(
 logs: null == logs ? _self.logs : logs // ignore: cast_nullable_to_non_nullable
-as List<MachineLogModel>,alertCount: null == alertCount ? _self.alertCount : alertCount // ignore: cast_nullable_to_non_nullable
+as List<EventLogModel>,alertCount: null == alertCount ? _self.alertCount : alertCount // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -151,7 +151,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<MachineLogModel> logs,  int alertCount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<EventLogModel> logs,  int alertCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AlertState() when $default != null:
 return $default(_that.logs,_that.alertCount);case _:
@@ -172,7 +172,7 @@ return $default(_that.logs,_that.alertCount);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<MachineLogModel> logs,  int alertCount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<EventLogModel> logs,  int alertCount)  $default,) {final _that = this;
 switch (_that) {
 case _AlertState():
 return $default(_that.logs,_that.alertCount);case _:
@@ -192,7 +192,7 @@ return $default(_that.logs,_that.alertCount);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<MachineLogModel> logs,  int alertCount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<EventLogModel> logs,  int alertCount)?  $default,) {final _that = this;
 switch (_that) {
 case _AlertState() when $default != null:
 return $default(_that.logs,_that.alertCount);case _:
@@ -207,11 +207,11 @@ return $default(_that.logs,_that.alertCount);case _:
 
 
 class _AlertState implements AlertState {
-  const _AlertState({final  List<MachineLogModel> logs = const [], this.alertCount = 0}): _logs = logs;
+  const _AlertState({final  List<EventLogModel> logs = const [], this.alertCount = 0}): _logs = logs;
   
 
- final  List<MachineLogModel> _logs;
-@override@JsonKey() List<MachineLogModel> get logs {
+ final  List<EventLogModel> _logs;
+@override@JsonKey() List<EventLogModel> get logs {
   if (_logs is EqualUnmodifiableListView) return _logs;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_logs);
@@ -249,7 +249,7 @@ abstract mixin class _$AlertStateCopyWith<$Res> implements $AlertStateCopyWith<$
   factory _$AlertStateCopyWith(_AlertState value, $Res Function(_AlertState) _then) = __$AlertStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<MachineLogModel> logs, int alertCount
+ List<EventLogModel> logs, int alertCount
 });
 
 
@@ -269,7 +269,7 @@ class __$AlertStateCopyWithImpl<$Res>
 @override @pragma('vm:prefer-inline') $Res call({Object? logs = null,Object? alertCount = null,}) {
   return _then(_AlertState(
 logs: null == logs ? _self._logs : logs // ignore: cast_nullable_to_non_nullable
-as List<MachineLogModel>,alertCount: null == alertCount ? _self.alertCount : alertCount // ignore: cast_nullable_to_non_nullable
+as List<EventLogModel>,alertCount: null == alertCount ? _self.alertCount : alertCount // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

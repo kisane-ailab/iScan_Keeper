@@ -1,6 +1,4 @@
-# Supabase 마이그레이션 가이드
-
-싱가포르 리전에서 한국 리전으로 Supabase 프로젝트 마이그레이션을 위한 파일들입니다.
+# Supabase 설정 가이드
 
 ## 폴더 구조
 
@@ -9,63 +7,77 @@ supabase/
 ├── migrations/
 │   └── 00001_initial_schema.sql    # 전체 스키마 (테이블, ENUM, 인덱스, Realtime)
 ├── functions/
-│   └── machine-logs/
+│   └── event-logs/
 │       └── index.ts                 # Edge Function 코드
 └── README.md
 ```
 
-## 마이그레이션 순서
+## 테이블 구조
 
-### 1. 새 Supabase 프로젝트 생성 (한국 리전)
-- https://supabase.com/dashboard 에서 새 프로젝트 생성
-- 리전: **Northeast Asia (Seoul)** 선택
+### event_logs (범용 이벤트/에러 로그)
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK |
+| source | VARCHAR | 로그 출처 (machine, web, app 등) |
+| error_code | VARCHAR | 에러 코드 |
+| log_level | VARCHAR | 로그 레벨 (info, warning, error) |
+| payload | JSONB | 상세 데이터 |
+| response_status | ENUM | 대응 상태 (unchecked, in_progress, completed) |
+| created_at | TIMESTAMPTZ | 생성 시간 |
 
-### 2. 스키마 마이그레이션
-1. Supabase Dashboard → SQL Editor 이동
-2. `migrations/00001_initial_schema.sql` 내용 복사하여 실행
+### users (직원/담당자)
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK |
+| name | VARCHAR | 이름 |
+| email | VARCHAR | 이메일 (UNIQUE) |
+| status | ENUM | 상태 (available, busy, offline) |
 
-### 3. Edge Function 배포
+### response_logs (대응 기록)
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK |
+| event_log_id | UUID | FK → event_logs |
+| user_id | UUID | FK → users |
+| started_at | TIMESTAMPTZ | 대응 시작 시간 |
+| completed_at | TIMESTAMPTZ | 완료 시간 |
+| memo | TEXT | 메모 |
+
+## Edge Function 사용법
+
+### event-logs
 ```bash
-# Supabase CLI 로그인
-supabase login
-
-# 프로젝트 연결
-supabase link --project-ref <새_프로젝트_ID>
-
-# Edge Function 배포 (JWT 검증 비활성화)
-supabase functions deploy machine-logs --no-verify-jwt
+curl -X POST https://<PROJECT_REF>.supabase.co/functions/v1/event-logs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "machine",
+    "errorCode": "E001",
+    "logLevel": "error",
+    "payload": {
+      "serialNumber": "SN-001",
+      "ipAddress": "192.168.1.1",
+      "additionalInfo": "..."
+    }
+  }'
 ```
-
-### 4. 환경 변수 확인
-Edge Function은 다음 환경 변수를 자동으로 사용합니다:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-### 5. 클라이언트 설정 업데이트
-앱의 `.env` 파일에서 Supabase URL과 API Key를 새 프로젝트 값으로 변경하세요.
 
 ## 현재 설정 요약
 
 | 항목 | 설정 |
 |------|------|
 | RLS | 모든 테이블 비활성화 |
-| Realtime | machine_logs 테이블 활성화 |
-| Edge Functions | machine-logs (JWT 비활성화) |
+| Realtime | event_logs 테이블 활성화 |
+| Edge Functions | event-logs (JWT 비활성화) |
 
-## 데이터 마이그레이션
+## 배포 명령어
 
-기존 데이터를 마이그레이션하려면:
+```bash
+# Supabase CLI 로그인
+supabase login
 
-```sql
--- 기존 프로젝트에서 데이터 추출
-COPY users TO '/tmp/users.csv' WITH CSV HEADER;
-COPY machine_logs TO '/tmp/machine_logs.csv' WITH CSV HEADER;
-COPY response_logs TO '/tmp/response_logs.csv' WITH CSV HEADER;
+# 프로젝트 연결
+supabase link --project-ref <프로젝트_ID>
 
--- 새 프로젝트에서 데이터 삽입
-COPY users FROM '/tmp/users.csv' WITH CSV HEADER;
-COPY machine_logs FROM '/tmp/machine_logs.csv' WITH CSV HEADER;
-COPY response_logs FROM '/tmp/response_logs.csv' WITH CSV HEADER;
+# Edge Function 배포 (JWT 검증 비활성화)
+supabase functions deploy event-logs --no-verify-jwt
 ```
-
-또는 Supabase Dashboard의 Table Editor에서 CSV로 Export/Import 가능합니다.

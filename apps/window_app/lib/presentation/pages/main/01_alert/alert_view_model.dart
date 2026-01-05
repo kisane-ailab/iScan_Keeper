@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:window_app/data/models/machine_log_model.dart';
-import 'package:window_app/domain/services/machine_log_realtime_service.dart';
+import 'package:window_app/data/models/event_log_model.dart';
+import 'package:window_app/domain/services/event_log_realtime_service.dart';
 
 part 'alert_view_model.freezed.dart';
 part 'alert_view_model.g.dart';
@@ -10,7 +10,7 @@ part 'alert_view_model.g.dart';
 @freezed
 abstract class AlertState with _$AlertState {
   const factory AlertState({
-    @Default([]) List<MachineLogModel> logs,
+    @Default([]) List<EventLogModel> logs,
     @Default(0) int alertCount,
   }) = _AlertState;
 }
@@ -18,15 +18,15 @@ abstract class AlertState with _$AlertState {
 /// Alert ViewModel
 @riverpod
 class AlertViewModel extends _$AlertViewModel {
-  MachineLogRealtimeService get _service =>
-      ref.read(machineLogRealtimeServiceProvider.notifier);
+  EventLogRealtimeService get _service =>
+      ref.read(eventLogRealtimeServiceProvider.notifier);
 
   @override
   AlertState build() {
     // 서비스의 로그 목록 구독
-    final logs = ref.watch(machineLogRealtimeServiceProvider);
+    final logs = ref.watch(eventLogRealtimeServiceProvider);
     final alertCount = logs
-        .where((l) => l.statusCode == 500 && l.responseStatus == 'unchecked')
+        .where((l) => l.logLevel == 'error' && l.responseStatus == 'unchecked')
         .length;
 
     return AlertState(
@@ -36,7 +36,7 @@ class AlertViewModel extends _$AlertViewModel {
   }
 
   /// 알림 스트림 (새 알림 발생 시)
-  Stream<MachineLogModel> get alertStream => _service.alertStream;
+  Stream<EventLogModel> get alertStream => _service.alertStream;
 
   /// 로그 모두 지우기
   void clearLogs() {
@@ -44,8 +44,8 @@ class AlertViewModel extends _$AlertViewModel {
   }
 
   /// 로그가 긴급 알림인지 확인
-  bool isAlert(MachineLogModel log) {
-    return log.statusCode == 500 && log.responseStatus == 'unchecked';
+  bool isAlert(EventLogModel log) {
+    return log.logLevel == 'error' && log.responseStatus == 'unchecked';
   }
 
   /// 응답 상태 라벨 반환

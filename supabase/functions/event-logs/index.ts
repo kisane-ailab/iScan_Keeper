@@ -7,42 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-interface MachineLogRequest {
-  publicIP: string;
-  companyName: string;
-  vendorName: string;
-  dbKey: string;
-  errorCode: string;
-  chatID: string;
-  serialNumber: string;
-  totalScanCount: string;
-  runMode: string;
-  language: string;
-  freeSpace: string;
-  freeMemory: string;
-  "EdgeMan-V": string;
-  "ServMan-V": string;
-  "JetsonMan-V": string;
-  "Artis_AI-V": string;
-  "Artis_AI_Model-V": string;
-  runningDbSync: string;
-  runningAiTraining: string;
-  lastUpdate: string;
-  logLevel: string;
-}
-
-// lastUpdate 문자열(YYYYMMDDHHmmss)을 ISO 타임스탬프로 변환
-function parseLastUpdate(dateStr: string): string | null {
-  if (!dateStr || dateStr.length !== 14) return null;
-
-  const year = dateStr.substring(0, 4);
-  const month = dateStr.substring(4, 6);
-  const day = dateStr.substring(6, 8);
-  const hour = dateStr.substring(8, 10);
-  const minute = dateStr.substring(10, 12);
-  const second = dateStr.substring(12, 14);
-
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}+09:00`;
+interface EventLogRequest {
+  source: string;
+  errorCode?: string;
+  logLevel?: string;
+  payload?: Record<string, unknown>;
+  // 기존 machine 호환용 필드들 (payload로 자동 변환)
+  [key: string]: unknown;
 }
 
 Deno.serve(async (req: Request) => {
@@ -77,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 요청 본문 파싱
-    let body: MachineLogRequest;
+    let body: EventLogRequest;
     try {
       body = await req.json();
     } catch (parseErr) {
@@ -87,58 +58,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 필수 필드 검증 (serialNumber만 필수)
-    if (!body.serialNumber) {
+    // source 필수 체크
+    if (!body.source) {
       return new Response(
         JSON.stringify({
-          error: "Missing required field: serialNumber",
+          error: "Missing required field: source",
           received: body
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // JSONB 데이터 구성
-    const systemInfo = {
-      freeSpace: body.freeSpace || null,
-      freeMemory: body.freeMemory || null,
-      totalScanCount: body.totalScanCount || null,
-    };
+    // 예약 필드 추출
+    const { source, errorCode, logLevel, payload: explicitPayload, ...restFields } = body;
 
-    const versionInfo = {
-      EdgeMan: body["EdgeMan-V"] || null,
-      ServMan: body["ServMan-V"] || null,
-      JetsonMan: body["JetsonMan-V"] || null,
-      Artis_AI: body["Artis_AI-V"] || null,
-      Artis_AI_Model: body["Artis_AI_Model-V"] || null,
-    };
+    // payload 구성: 명시적 payload가 있으면 사용, 아니면 나머지 필드를 payload로
+    const payload = explicitPayload || (Object.keys(restFields).length > 0 ? restFields : {});
 
-    const settings = {
-      chatID: body.chatID || null,
-      language: body.language || null,
-      runningDbSync: body.runningDbSync === "true",
-      runningAiTraining: body.runningAiTraining === "true",
-    };
-
-    // lastUpdate 파싱
-    const lastUpdate = parseLastUpdate(body.lastUpdate);
-
-    // machine_logs 테이블에 삽입
+    // event_logs 테이블에 삽입
     const { data, error } = await supabase
-      .from("machine_logs")
+      .from("event_logs")
       .insert({
-        serial_number: body.serialNumber,
-        public_ip: body.publicIP || null,
-        company_name: body.companyName || null,
-        vendor_name: body.vendorName || null,
-        db_key: body.dbKey || null,
-        error_code: body.errorCode || null,
-        run_mode: body.runMode || "base",
-        log_level: body.logLevel || null,
-        system_info: systemInfo,
-        version_info: versionInfo,
-        settings: settings,
-        last_update: lastUpdate,
+        source: source,
+        error_code: errorCode || null,
+        log_level: logLevel || "info",
+        payload: payload,
         response_status: "unchecked"
       })
       .select()
@@ -163,7 +107,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         data: {
           id: data.id,
-          serial_number: data.serial_number,
+          source: data.source,
           error_code: data.error_code,
           log_level: data.log_level,
           response_status: data.response_status,
