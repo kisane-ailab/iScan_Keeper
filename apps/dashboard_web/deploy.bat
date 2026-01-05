@@ -7,7 +7,7 @@ echo ========================================
 echo.
 
 :: 1. 빌드
-echo [1/9] Building...
+echo [1/5] Building...
 call npm run build
 if errorlevel 1 (
     echo Build failed!
@@ -18,13 +18,13 @@ echo Build successful!
 echo.
 
 :: 2. 압축
-echo [2/9] Creating archive...
+echo [2/5] Creating archive...
 tar -czf dashboard_standalone.tar.gz .next/standalone .next/static public
 echo Archive created!
 echo.
 
 :: 3. Python 스크립트 생성
-echo [3/9] Creating deploy script...
+echo [3/5] Creating deploy script...
 (
 echo import subprocess
 echo import sys
@@ -60,7 +60,7 @@ echo print^("Done! http://58.238.37.52:60500"^)
 ) > deploy_script.py
 
 :: 4. Python 스크립트 실행
-echo [4/9] Running deploy script...
+echo [4/5] Running deploy script...
 python deploy_script.py
 if errorlevel 1 (
     del deploy_script.py
@@ -70,6 +70,7 @@ if errorlevel 1 (
 )
 
 :: 5. 정리
+echo [5/5] Cleaning up...
 del deploy_script.py
 
 echo.
