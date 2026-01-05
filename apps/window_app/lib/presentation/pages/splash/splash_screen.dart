@@ -29,6 +29,17 @@ class SplashScreen extends BasePage {
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
 
+    Future<void> handleLogin() async {
+      if (state.isLoading) return;
+      final success = await viewModel.signIn(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+      );
+      if (success && context.mounted) {
+        context.go(AlertScreen.path);
+      }
+    }
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
@@ -70,6 +81,7 @@ class SplashScreen extends BasePage {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -80,6 +92,8 @@ class SplashScreen extends BasePage {
                   border: OutlineInputBorder(),
                 ),
                 obscureText: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => handleLogin(),
               ),
               if (state.errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -97,17 +111,7 @@ class SplashScreen extends BasePage {
               ],
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: state.isLoading
-                    ? null
-                    : () async {
-                        final success = await viewModel.signIn(
-                          email: emailController.text.trim(),
-                          password: passwordController.text,
-                        );
-                        if (success && context.mounted) {
-                          context.go(AlertScreen.path);
-                        }
-                      },
+                onPressed: state.isLoading ? null : handleLogin,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
