@@ -31,6 +31,34 @@ class SignupScreen extends BasePage {
     final passwordController = useTextEditingController();
     final confirmPasswordController = useTextEditingController();
 
+    final nameFocus = useFocusNode();
+    final emailFocus = useFocusNode();
+    final passwordFocus = useFocusNode();
+    final confirmPasswordFocus = useFocusNode();
+
+    Future<void> handleSubmit() async {
+      if (state.isLoading) return;
+
+      if (passwordController.text != confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('비밀번호가 일치하지 않습니다'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final success = await viewModel.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+        name: nameController.text.trim(),
+      );
+      if (success && context.mounted) {
+        context.go(EmailVerificationScreen.path);
+      }
+    }
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
@@ -66,41 +94,53 @@ class SignupScreen extends BasePage {
               const SizedBox(height: 32),
               TextField(
                 controller: nameController,
+                focusNode: nameFocus,
                 decoration: const InputDecoration(
                   labelText: '이름',
                   prefixIcon: Icon(Icons.person_outlined),
                   border: OutlineInputBorder(),
                 ),
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => emailFocus.requestFocus(),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
+                focusNode: emailFocus,
                 decoration: const InputDecoration(
                   labelText: '이메일',
                   prefixIcon: Icon(Icons.email_outlined),
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => passwordFocus.requestFocus(),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
+                focusNode: passwordFocus,
                 decoration: const InputDecoration(
                   labelText: '비밀번호',
                   prefixIcon: Icon(Icons.lock_outlined),
                   border: OutlineInputBorder(),
                 ),
                 obscureText: true,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => confirmPasswordFocus.requestFocus(),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: confirmPasswordController,
+                focusNode: confirmPasswordFocus,
                 decoration: const InputDecoration(
                   labelText: '비밀번호 확인',
                   prefixIcon: Icon(Icons.lock_outlined),
                   border: OutlineInputBorder(),
                 ),
                 obscureText: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => handleSubmit(),
               ),
               if (state.errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -118,30 +158,7 @@ class SignupScreen extends BasePage {
               ],
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: state.isLoading
-                    ? null
-                    : () async {
-                        // 비밀번호 확인 검증
-                        if (passwordController.text !=
-                            confirmPasswordController.text) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('비밀번호가 일치하지 않습니다'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        final success = await viewModel.signUp(
-                          email: emailController.text.trim(),
-                          password: passwordController.text,
-                          name: nameController.text.trim(),
-                        );
-                        if (success && context.mounted) {
-                          context.go(EmailVerificationScreen.path);
-                        }
-                      },
+                onPressed: state.isLoading ? null : handleSubmit,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

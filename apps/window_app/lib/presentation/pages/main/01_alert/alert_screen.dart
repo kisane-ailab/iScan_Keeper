@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
-import 'package:window_app/data/models/enums/response_status.dart';
-import 'package:window_app/data/models/event_log_model.dart';
+import 'package:window_app/data/models/notification_settings.dart';
+import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
+import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
@@ -18,7 +19,6 @@ class AlertScreen extends BasePage {
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context, WidgetRef ref) {
     final state = ref.watch(alertViewModelProvider);
-    final viewModel = ref.read(alertViewModelProvider.notifier);
 
     return AppBar(
       title: Row(
@@ -40,32 +40,29 @@ class AlertScreen extends BasePage {
           ],
         ],
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.delete_outline),
-          tooltip: '알림 모두 지우기',
-          onPressed: () => viewModel.clearLogs(),
-        ),
-      ],
     );
   }
 
   @override
   Widget buildPage(BuildContext context, WidgetRef ref) {
     final state = ref.watch(alertViewModelProvider);
-    final viewModel = ref.read(alertViewModelProvider.notifier);
+    final isAlwaysOnTop = ref.watch(alwaysOnTopStateProvider);
+    final settings = ref.watch(notificationSettingsServiceProvider);
 
-    // 미확인 critical 로그 찾기
-    final uncheckedCriticalLogs =
-        state.logs.where((log) => log.isCriticalUnchecked).toList();
+    // 항상위 모드가 필요한 미대응 로그 찾기 (설정 기반)
+    final alwaysOnTopLogs = state.logs.where((entity) {
+      if (!entity.isUnchecked) return false;
+      final action = settings.getActionForLevel(entity.logLevel);
+      return action == NotificationAction.alwaysOnTop;
+    }).toList();
 
     return Column(
       children: [
-        // 항상 위 모드 배너 (미확인 critical이 있을 때)
-        if (AppTrayManager.isAlwaysOnTop && uncheckedCriticalLogs.isNotEmpty)
+        // 항상 위 모드 배너 (항상위 필요 로그가 있을 때)
+        if (isAlwaysOnTop && alwaysOnTopLogs.isNotEmpty)
           _CriticalAlertBanner(
-            logs: uncheckedCriticalLogs,
-            onRespond: (log) => _showResponseDialog(context, ref, log),
+            entities: alwaysOnTopLogs,
+            onRespond: (entity) => _showResponseDialog(context, ref, entity),
           ),
 
         // 메인 콘텐츠
@@ -94,14 +91,13 @@ class AlertScreen extends BasePage {
                   padding: const EdgeInsets.all(16),
                   itemCount: state.logs.length,
                   itemBuilder: (context, index) {
-                    final log = state.logs[index];
+                    final entity = state.logs[index];
                     return _LogCard(
-                      log: log,
-                      formatTime: viewModel.formatTime,
-                      onRespond: () => _showResponseDialog(context, ref, log),
-                      onAbandon: () => _abandonResponse(context, ref, log),
+                      entity: entity,
+                      onRespond: () => _showResponseDialog(context, ref, entity),
+                      onAbandon: () => _abandonResponse(context, ref, entity),
                       onComplete: () =>
-                          _showCompleteDialog(context, ref, log),
+                          _showCompleteDialog(context, ref, entity),
                     );
                   },
                 ),
@@ -111,7 +107,7 @@ class AlertScreen extends BasePage {
   }
 
   Future<void> _showResponseDialog(
-      BuildContext context, WidgetRef ref, EventLogModel log) async {
+      BuildContext context, WidgetRef ref, SystemLogEntity entity) async {
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -121,9 +117,9 @@ class AlertScreen extends BasePage {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('소스: ${log.source}'),
-            if (log.errorCode != null) Text('에러 코드: ${log.errorCode}'),
-            Text('레벨: ${log.logLevel.label}'),
+            Text('소스: ${entity.source}'),
+            if (entity.errorCode != null) Text('에러 코드: ${entity.errorCode}'),
+            Text('레벨: ${entity.logLevel.label}'),
             const SizedBox(height: 16),
             const Text('이 알림에 대응을 시작하시겠습니까?'),
             const Text(
@@ -147,7 +143,7 @@ class AlertScreen extends BasePage {
 
     if (confirmed == true) {
       final service = ref.read(eventResponseServiceProvider.notifier);
-      final success = await service.startResponse(log);
+      final success = await service.startResponse(entity);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -156,16 +152,13 @@ class AlertScreen extends BasePage {
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
-
-        if (success) {
-          ref.invalidate(alertViewModelProvider);
-        }
+        // Realtime UPDATE로 자동 갱신되므로 invalidate 불필요
       }
     }
   }
 
   Future<void> _abandonResponse(
-      BuildContext context, WidgetRef ref, EventLogModel log) async {
+      BuildContext context, WidgetRef ref, SystemLogEntity entity) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -189,7 +182,7 @@ class AlertScreen extends BasePage {
 
     if (confirmed == true) {
       final service = ref.read(eventResponseServiceProvider.notifier);
-      final success = await service.abandonResponse(log);
+      final success = await service.abandonResponse(entity);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,16 +191,13 @@ class AlertScreen extends BasePage {
             backgroundColor: success ? Colors.orange : Colors.red,
           ),
         );
-
-        if (success) {
-          ref.invalidate(alertViewModelProvider);
-        }
+        // Realtime UPDATE로 자동 갱신되므로 invalidate 불필요
       }
     }
   }
 
   Future<void> _showCompleteDialog(
-      BuildContext context, WidgetRef ref, EventLogModel log) async {
+      BuildContext context, WidgetRef ref, SystemLogEntity entity) async {
     final memoController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -245,7 +235,7 @@ class AlertScreen extends BasePage {
     if (confirmed == true) {
       final service = ref.read(eventResponseServiceProvider.notifier);
       final success =
-          await service.completeResponse(log, memoController.text);
+          await service.completeResponse(entity, memoController.text);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -254,10 +244,7 @@ class AlertScreen extends BasePage {
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
-
-        if (success) {
-          ref.invalidate(alertViewModelProvider);
-        }
+        // Realtime UPDATE로 자동 갱신되므로 invalidate 불필요
       }
     }
 
@@ -271,30 +258,32 @@ class AlertScreen extends BasePage {
 /// 긴급 알림 배너
 class _CriticalAlertBanner extends StatelessWidget {
   const _CriticalAlertBanner({
-    required this.logs,
+    required this.entities,
     required this.onRespond,
   });
 
-  final List<EventLogModel> logs;
-  final void Function(EventLogModel) onRespond;
+  final List<SystemLogEntity> entities;
+  final void Function(SystemLogEntity) onRespond;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 250),
       padding: const EdgeInsets.all(16),
       color: Colors.red,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.warning, color: Colors.white, size: 28),
-              SizedBox(width: 12),
+              const Icon(Icons.warning, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '긴급 알림 - 대응이 필요합니다',
-                  style: TextStyle(
+                  '긴급 알림 - 대응이 필요합니다 (${entities.length}건)',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -304,27 +293,48 @@ class _CriticalAlertBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ...logs.map((log) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '[${log.source}] ${log.errorCode ?? '알림'}',
-                        style: const TextStyle(color: Colors.white),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: entities.length,
+              itemBuilder: (context, index) {
+                final entity = entities[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '[${entity.source}] ${entity.errorCode ?? '알림'}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            Text(
+                              entity.formattedCreatedAt,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => onRespond(log),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.red,
+                      ElevatedButton(
+                        onPressed: () => onRespond(entity),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('대응하기'),
                       ),
-                      child: const Text('대응하기'),
-                    ),
-                  ],
-                ),
-              )),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -334,15 +344,13 @@ class _CriticalAlertBanner extends StatelessWidget {
 /// 로그 카드
 class _LogCard extends ConsumerWidget {
   const _LogCard({
-    required this.log,
-    required this.formatTime,
+    required this.entity,
     required this.onRespond,
     required this.onAbandon,
     required this.onComplete,
   });
 
-  final EventLogModel log;
-  final String Function(DateTime) formatTime;
+  final SystemLogEntity entity;
   final VoidCallback onRespond;
   final VoidCallback onAbandon;
   final VoidCallback onComplete;
@@ -350,11 +358,11 @@ class _LogCard extends ConsumerWidget {
   Color _getLevelColor(LogLevel level) {
     switch (level) {
       case LogLevel.critical:
-        return Colors.purple;
-      case LogLevel.error:
         return Colors.red;
-      case LogLevel.warning:
+      case LogLevel.error:
         return Colors.orange;
+      case LogLevel.warning:
+        return Colors.amber;
       default:
         return Colors.blue;
     }
@@ -373,28 +381,20 @@ class _LogCard extends ConsumerWidget {
     }
   }
 
-  String _formatStartTime(DateTime startTime) {
-    final hour = startTime.hour.toString().padLeft(2, '0');
-    final minute = startTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute 시작';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final levelColor = _getLevelColor(log.logLevel);
-    final isUnchecked = log.responseStatus == ResponseStatus.unchecked;
-    final isInProgress = log.responseStatus == ResponseStatus.inProgress;
+    final levelColor = _getLevelColor(entity.logLevel);
 
     // 현재 사용자가 대응 중인지 확인
     final authState = ref.watch(authServiceProvider);
-    final isMyResponse = log.currentResponderId == authState.user?.id;
+    final isMyResponse = entity.currentResponderId == authState.user?.id;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isUnchecked && log.logLevel.needsNotification
-          ? levelColor.withOpacity(0.1)
-          : isInProgress
-              ? Colors.blue.withOpacity(0.05)
+      color: entity.needsNotification
+          ? levelColor.withValues(alpha: 0.1)
+          : entity.isBeingResponded
+              ? Colors.blue.withValues(alpha: 0.05)
               : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -405,7 +405,7 @@ class _LogCard extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  _getLevelIcon(log.logLevel),
+                  _getLevelIcon(entity.logLevel),
                   color: levelColor,
                   size: 28,
                 ),
@@ -417,7 +417,7 @@ class _LogCard extends ConsumerWidget {
                       Row(
                         children: [
                           Text(
-                            '[${log.source}]',
+                            '[${entity.source}]',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 8),
@@ -426,43 +426,27 @@ class _LogCard extends ConsumerWidget {
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color:
-                                  log.isHealthCheck ? Colors.green : Colors.blue,
+                                  entity.isHealthCheck ? Colors.green : Colors.blue,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              log.eventType.label,
+                              entity.eventType.label,
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
                           ),
-                          if (log.logLevel == LogLevel.critical) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.purple,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                '긴급',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 10),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
-                      if (log.errorCode != null)
+                      if (entity.errorCode != null)
                         Text(
-                          '에러 코드: ${log.errorCode}',
+                          '에러 코드: ${entity.errorCode}',
                           style: const TextStyle(fontSize: 12),
                         ),
                     ],
                   ),
                 ),
                 Text(
-                  formatTime(log.createdAt),
+                  entity.formattedCreatedAt,
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -477,11 +461,11 @@ class _LogCard extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: levelColor.withOpacity(0.2),
+                    color: levelColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    log.logLevel.label,
+                    entity.logLevel.label,
                     style: TextStyle(fontSize: 11, color: levelColor),
                   ),
                 ),
@@ -490,38 +474,38 @@ class _LogCard extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isUnchecked
-                        ? Colors.orange.withOpacity(0.2)
-                        : isInProgress
-                            ? Colors.blue.withOpacity(0.2)
-                            : Colors.green.withOpacity(0.2),
+                    color: entity.isUnchecked
+                        ? Colors.orange.withValues(alpha: 0.2)
+                        : entity.isBeingResponded
+                            ? Colors.blue.withValues(alpha: 0.2)
+                            : Colors.green.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    log.responseStatus.label,
+                    entity.responseStatus.label,
                     style: TextStyle(
                       fontSize: 11,
-                      color: isUnchecked
+                      color: entity.isUnchecked
                           ? Colors.orange
-                          : isInProgress
+                          : entity.isBeingResponded
                               ? Colors.blue
                               : Colors.green,
                     ),
                   ),
                 ),
                 // 대응자 정보
-                if (isInProgress && log.currentResponderName != null) ...[
+                if (entity.isBeingResponded && entity.currentResponderName != null) ...[
                   const SizedBox(width: 8),
                   Icon(Icons.person, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    '${log.currentResponderName}',
+                    '${entity.currentResponderName}',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
-                  if (log.responseStartedAt != null) ...[
+                  if (entity.formattedResponseStartedAt != null) ...[
                     const SizedBox(width: 8),
                     Text(
-                      _formatStartTime(log.responseStartedAt!),
+                      entity.formattedResponseStartedAt!,
                       style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     ),
                   ],
@@ -530,12 +514,12 @@ class _LogCard extends ConsumerWidget {
             ),
 
             // 액션 버튼
-            if (isUnchecked || (isInProgress && isMyResponse)) ...[
+            if (entity.isUnchecked || (entity.isBeingResponded && isMyResponse)) ...[
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (isUnchecked)
+                  if (entity.isUnchecked)
                     ElevatedButton.icon(
                       onPressed: onRespond,
                       icon: const Icon(Icons.play_arrow, size: 18),
@@ -545,7 +529,7 @@ class _LogCard extends ConsumerWidget {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (isInProgress && isMyResponse) ...[
+                  if (entity.isBeingResponded && isMyResponse) ...[
                     OutlinedButton.icon(
                       onPressed: onAbandon,
                       icon: const Icon(Icons.close, size: 18),

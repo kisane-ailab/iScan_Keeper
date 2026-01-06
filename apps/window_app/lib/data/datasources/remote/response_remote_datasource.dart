@@ -50,7 +50,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
 
     // 이미 대응 중인지 확인
     final existingLog = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select('response_status, current_responder_id')
         .eq('id', eventLogId)
         .single();
@@ -70,8 +70,8 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
       'started_at': DateTime.now().toIso8601String(),
     }).select().single();
 
-    // event_logs 업데이트
-    await _client.from('event_logs').update({
+    // system_logs 업데이트
+    await _client.from('system_logs').update({
       'response_status': 'in_progress',
       'current_responder_id': userId,
       'current_responder_name': userName,
@@ -97,9 +97,9 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
         .eq('user_id', userId)
         .isFilter('completed_at', null);
 
-    // event_logs 미확인으로 되돌림
-    await _client.from('event_logs').update({
-      'response_status': 'unchecked',
+    // system_logs 미대응으로 되돌림
+    await _client.from('system_logs').update({
+      'response_status': 'unresponded',
       'current_responder_id': null,
       'current_responder_name': null,
       'response_started_at': null,
@@ -127,8 +127,8 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
         .eq('user_id', userId)
         .isFilter('completed_at', null);
 
-    // event_logs 완료 처리
-    await _client.from('event_logs').update({
+    // system_logs 완료 처리
+    await _client.from('system_logs').update({
       'response_status': 'completed',
     }).eq('id', eventLogId);
 
@@ -139,7 +139,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
   Future<List<Map<String, dynamic>>> getMyResponses(String userId) async {
     final result = await _client
         .from('response_logs')
-        .select('*, event_log:event_logs(*)')
+        .select('*, system_log:system_logs(*)')
         .eq('user_id', userId)
         .order('started_at', ascending: false)
         .limit(50);
@@ -151,7 +151,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
   Future<Map<String, dynamic>?> getResponse(String responseId) async {
     return await _client
         .from('response_logs')
-        .select('*, event_log:event_logs(*), user:users(id, name, email)')
+        .select('*, system_log:system_logs(*), user:users(id, name, email)')
         .eq('id', responseId)
         .maybeSingle();
   }

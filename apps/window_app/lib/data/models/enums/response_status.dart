@@ -2,8 +2,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 @JsonEnum(valueField: 'value')
 enum ResponseStatus {
-  unchecked('unchecked', '미확인'),
-  inProgress('in_progress', '처리중'),
+  unresponded('unresponded', '미대응'),
+  inProgress('in_progress', '대응중'),
   completed('completed', '완료');
 
   const ResponseStatus(this.value, this.label);
@@ -14,7 +14,7 @@ enum ResponseStatus {
   static ResponseStatus fromString(String? value) {
     return ResponseStatus.values.firstWhere(
       (e) => e.value == value,
-      orElse: () => ResponseStatus.unchecked,
+      orElse: () => ResponseStatus.unresponded,
     );
   }
 }

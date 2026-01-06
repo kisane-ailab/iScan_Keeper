@@ -167,26 +167,26 @@ class StatsRemoteDatasourceImpl implements StatsRemoteDatasource {
   Future<Map<String, dynamic>> getOverviewStats() async {
     logger.d('전체 개요 통계 조회');
 
-    // 이벤트 로그 통계
+    // 시스템 로그 통계
     final totalEvents = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select('id')
         .count();
 
     final uncheckedEvents = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select('id')
-        .eq('response_status', 'unchecked')
+        .eq('response_status', 'unresponded')
         .count();
 
     final inProgressEvents = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select('id')
         .eq('response_status', 'in_progress')
         .count();
 
     final completedEvents = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select('id')
         .eq('response_status', 'completed')
         .count();
@@ -235,7 +235,7 @@ class StatsRemoteDatasourceImpl implements StatsRemoteDatasource {
 
     var query = _client
         .from('response_logs')
-        .select('*, event_log:event_logs(*)')
+        .select('*, system_log:system_logs(*)')
         .eq('user_id', userId);
 
     if (status == 'in_progress') {
@@ -288,7 +288,7 @@ class StatsRemoteDatasourceImpl implements StatsRemoteDatasource {
 
     var query = _client
         .from('response_logs')
-        .select('*, event_log:event_logs(*), user:users(id, name, email)')
+        .select('*, system_log:system_logs(*), user:users(id, name, email)')
         .gte('started_at', '${fromDate}T00:00:00Z')
         .lte('started_at', '${toDate}T23:59:59Z');
 

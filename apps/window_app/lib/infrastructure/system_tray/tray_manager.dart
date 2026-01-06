@@ -2,9 +2,27 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_manager/window_manager.dart';
+
+part 'tray_manager.g.dart';
+
+/// 전역 ScaffoldMessenger 키 (앱 전체에서 스낵바 표시용)
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
+/// 항상위모드 상태 Provider
+@Riverpod(keepAlive: true)
+class AlwaysOnTopState extends _$AlwaysOnTopState {
+  @override
+  bool build() => false;
+
+  void setAlwaysOnTop(bool value) {
+    state = value;
+  }
+}
 
 class AppTrayManager with TrayListener {
   static final AppTrayManager _instance = AppTrayManager._internal();
@@ -123,6 +141,14 @@ class WindowListenerHandler extends WindowListener {
     // 항상 위 모드일 때는 닫기 불가
     if (AppTrayManager.isAlwaysOnTop) {
       logger.w('항상 위 모드에서는 창을 닫을 수 없습니다');
+      // 스낵바로 사용자에게 알림
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          content: Text('긴급 알림 대응 전까지 창을 닫을 수 없습니다'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
       return;
     }
     // 창 닫기 버튼 클릭 시 트레이로 숨김 (종료 X)
@@ -142,7 +168,15 @@ class WindowListenerHandler extends WindowListener {
   void onWindowUnmaximize() {}
 
   @override
-  void onWindowMinimize() {}
+  void onWindowMinimize() async {
+    // 항상 위 모드일 때는 최소화 불가 (setMinimizable(false)로 이미 막혀있지만 안전장치)
+    if (AppTrayManager.isAlwaysOnTop) {
+      await windowManager.restore();
+      return;
+    }
+    // 최소화 시 트레이로 숨김
+    await AppTrayManager.hideWindow();
+  }
 
   @override
   void onWindowRestore() {}

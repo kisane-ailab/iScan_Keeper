@@ -1,15 +1,16 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'event_log_model.dart';
+part of 'system_log_model.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_EventLogModel _$EventLogModelFromJson(Map<String, dynamic> json) =>
-    _EventLogModel(
+_SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
+    _SystemLogModel(
       id: json['id'] as String,
       source: json['source'] as String,
+      description: json['description'] as String?,
       eventType:
           $enumDecodeNullable(_$EventTypeEnumMap, json['event_type']) ??
           EventType.event,
@@ -22,20 +23,23 @@ _EventLogModel _$EventLogModelFromJson(Map<String, dynamic> json) =>
           $enumDecodeNullable(
             _$ResponseStatusEnumMap,
             json['response_status'],
+            unknownValue: ResponseStatus.unresponded,
           ) ??
-          ResponseStatus.unchecked,
+          ResponseStatus.unresponded,
       createdAt: DateTime.parse(json['created_at'] as String),
       currentResponderId: json['current_responder_id'] as String?,
       currentResponderName: json['current_responder_name'] as String?,
       responseStartedAt: json['response_started_at'] == null
           ? null
           : DateTime.parse(json['response_started_at'] as String),
+      organizationId: json['organization_id'] as String?,
     );
 
-Map<String, dynamic> _$EventLogModelToJson(_EventLogModel instance) =>
+Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'source': instance.source,
+      'description': instance.description,
       'event_type': _$EventTypeEnumMap[instance.eventType]!,
       'error_code': instance.errorCode,
       'log_level': _$LogLevelEnumMap[instance.logLevel]!,
@@ -45,6 +49,7 @@ Map<String, dynamic> _$EventLogModelToJson(_EventLogModel instance) =>
       'current_responder_id': instance.currentResponderId,
       'current_responder_name': instance.currentResponderName,
       'response_started_at': instance.responseStartedAt?.toIso8601String(),
+      'organization_id': instance.organizationId,
     };
 
 const _$EventTypeEnumMap = {
@@ -60,7 +65,7 @@ const _$LogLevelEnumMap = {
 };
 
 const _$ResponseStatusEnumMap = {
-  ResponseStatus.unchecked: 'unchecked',
+  ResponseStatus.unresponded: 'unresponded',
   ResponseStatus.inProgress: 'in_progress',
   ResponseStatus.completed: 'completed',
 };

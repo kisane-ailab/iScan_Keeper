@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/data/datasources/remote/response_remote_datasource.dart';
-import 'package:window_app/data/models/event_log_model.dart';
 import 'package:window_app/domain/repositories/response_repository.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 
@@ -14,19 +13,14 @@ class ResponseRepositoryImpl implements ResponseRepository {
 
   @override
   Future<Map<String, dynamic>> startResponse({
-    required EventLogModel log,
+    required String eventLogId,
     required String userId,
     required String userName,
   }) async {
-    logger.d('Repository: 대응 시작 - eventLogId=${log.id}');
-
-    // 이미 다른 사람이 대응 중인지 확인
-    if (log.isBeingResponded && log.currentResponderId != userId) {
-      throw Exception('이미 ${log.currentResponderName}님이 대응 중입니다');
-    }
+    logger.d('Repository: 대응 시작 - eventLogId=$eventLogId');
 
     return await _remoteDatasource.claim(
-      eventLogId: log.id,
+      eventLogId: eventLogId,
       userId: userId,
       userName: userName,
     );
@@ -34,32 +28,27 @@ class ResponseRepositoryImpl implements ResponseRepository {
 
   @override
   Future<void> cancelResponse({
-    required EventLogModel log,
+    required String eventLogId,
     required String userId,
   }) async {
-    logger.d('Repository: 대응 취소 - eventLogId=${log.id}');
-
-    // 본인이 대응 중인 건만 취소 가능
-    if (log.currentResponderId != userId) {
-      throw Exception('본인이 대응 중인 건만 취소할 수 있습니다');
-    }
+    logger.d('Repository: 대응 취소 - eventLogId=$eventLogId');
 
     await _remoteDatasource.cancel(
-      eventLogId: log.id,
+      eventLogId: eventLogId,
       userId: userId,
     );
   }
 
   @override
   Future<void> completeResponse({
-    required EventLogModel log,
+    required String eventLogId,
     required String userId,
     String? memo,
   }) async {
-    logger.d('Repository: 대응 완료 - eventLogId=${log.id}');
+    logger.d('Repository: 대응 완료 - eventLogId=$eventLogId');
 
     await _remoteDatasource.complete(
-      eventLogId: log.id,
+      eventLogId: eventLogId,
       userId: userId,
       memo: memo,
     );

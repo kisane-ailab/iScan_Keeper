@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import 'package:window_app/data/models/event_log_model.dart';
-import 'package:window_app/domain/services/event_log_realtime_service.dart';
+import 'package:window_app/domain/entities/system_log_entity.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/infrastructure/notification/notification_handler.dart';
+import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 import 'package:window_app/presentation/router/app_router.dart';
 
 class WindowApp extends ConsumerStatefulWidget {
@@ -17,7 +18,7 @@ class WindowApp extends ConsumerStatefulWidget {
 }
 
 class _WindowAppState extends ConsumerState<WindowApp> {
-  StreamSubscription<EventLogModel>? _alertSubscription;
+  StreamSubscription<SystemLogEntity>? _alertSubscription;
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _WindowAppState extends ConsumerState<WindowApp> {
   }
 
   void _setupAlertSubscription() {
-    final service = ref.read(eventLogRealtimeServiceProvider.notifier);
+    final service = ref.read(systemLogRealtimeServiceProvider.notifier);
     _alertSubscription = service.alertStream.listen((log) {
       final settings = ref.read(notificationSettingsServiceProvider);
       NotificationHandler.handleEventLog(log, settings);
@@ -45,11 +46,12 @@ class _WindowAppState extends ConsumerState<WindowApp> {
   @override
   Widget build(BuildContext context) {
     // Realtime 서비스 시작 (앱 전체에서 백그라운드 구독)
-    ref.watch(eventLogRealtimeServiceProvider);
+    ref.watch(systemLogRealtimeServiceProvider);
 
     return MaterialApp.router(
       title: 'iScan Keeper',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,

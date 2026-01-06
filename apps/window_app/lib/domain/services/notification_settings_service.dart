@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/data/models/notification_settings.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/infrastructure/local-storage/shared_preferences_storage.dart';
 
 part 'notification_settings_service.g.dart';
@@ -40,18 +41,26 @@ class NotificationSettingsService extends _$NotificationSettingsService {
   Future<void> setWarningAction(NotificationAction action) async {
     state = state.copyWith(warningAction: action);
     await _saveSettings();
+    await _reevaluateAlwaysOnTop();
   }
 
   /// error 알림 동작 변경
   Future<void> setErrorAction(NotificationAction action) async {
     state = state.copyWith(errorAction: action);
     await _saveSettings();
+    await _reevaluateAlwaysOnTop();
   }
 
   /// critical 알림 동작 변경
   Future<void> setCriticalAction(NotificationAction action) async {
     state = state.copyWith(criticalAction: action);
     await _saveSettings();
+    await _reevaluateAlwaysOnTop();
+  }
+
+  /// 설정 변경 시 항상위 모드 재평가
+  Future<void> _reevaluateAlwaysOnTop() async {
+    await ref.read(systemLogRealtimeServiceProvider.notifier).checkAndReleaseAlwaysOnTop();
   }
 
   /// 헬스체크 알림 표시 여부 변경
@@ -64,5 +73,6 @@ class NotificationSettingsService extends _$NotificationSettingsService {
   Future<void> resetToDefault() async {
     state = const NotificationSettings();
     await _saveSettings();
+    await _reevaluateAlwaysOnTop();
   }
 }

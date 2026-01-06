@@ -3,29 +3,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 
-part 'event_log_remote_datasource.g.dart';
+part 'system_log_remote_datasource.g.dart';
 
-/// EventLog Remote DataSource 인터페이스
-abstract class EventLogRemoteDatasource {
-  /// 이벤트 로그 목록 조회 (페이지네이션)
-  Future<List<Map<String, dynamic>>> getEventLogs({
+/// SystemLog Remote DataSource 인터페이스
+abstract class SystemLogRemoteDatasource {
+  /// 시스템 로그 목록 조회 (페이지네이션)
+  Future<List<Map<String, dynamic>>> getSystemLogs({
     int page = 1,
     int limit = 20,
     String? responseStatus,
     String? logLevel,
   });
 
-  /// 이벤트 로그 상세 조회
-  Future<Map<String, dynamic>?> getEventLog(String id);
+  /// 시스템 로그 상세 조회
+  Future<Map<String, dynamic>?> getSystemLog(String id);
 
-  /// 미확인 로그 조회
-  Future<List<Map<String, dynamic>>> getUncheckedLogs({int limit = 50});
+  /// 미대응 로그 조회
+  Future<List<Map<String, dynamic>>> getUnrespondedLogs({int limit = 50});
 
-  /// 미확인/대응중 알림 로그 조회 (warning, error, critical)
+  /// 미대응/대응중 알림 로그 조회 (warning, error, critical)
   Future<List<Map<String, dynamic>>> getPendingAlerts({int limit = 50});
 
-  /// 이벤트 로그 생성 (테스트용)
-  Future<Map<String, dynamic>> createEventLog({
+  /// 시스템 로그 생성 (테스트용)
+  Future<Map<String, dynamic>> createSystemLog({
     required String source,
     String eventType = 'event',
     String? errorCode,
@@ -34,14 +34,14 @@ abstract class EventLogRemoteDatasource {
   });
 }
 
-/// EventLog Remote DataSource 구현체
-class EventLogRemoteDatasourceImpl implements EventLogRemoteDatasource {
+/// SystemLog Remote DataSource 구현체
+class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
   final SupabaseClient _client;
 
-  EventLogRemoteDatasourceImpl(this._client);
+  SystemLogRemoteDatasourceImpl(this._client);
 
   @override
-  Future<List<Map<String, dynamic>>> getEventLogs({
+  Future<List<Map<String, dynamic>>> getSystemLogs({
     int page = 1,
     int limit = 20,
     String? responseStatus,
@@ -49,7 +49,7 @@ class EventLogRemoteDatasourceImpl implements EventLogRemoteDatasource {
   }) async {
     final offset = (page - 1) * limit;
 
-    var query = _client.from('event_logs').select();
+    var query = _client.from('system_logs').select();
 
     if (responseStatus != null) {
       query = query.eq('response_status', responseStatus);
@@ -67,20 +67,20 @@ class EventLogRemoteDatasourceImpl implements EventLogRemoteDatasource {
   }
 
   @override
-  Future<Map<String, dynamic>?> getEventLog(String id) async {
+  Future<Map<String, dynamic>?> getSystemLog(String id) async {
     return await _client
-        .from('event_logs')
+        .from('system_logs')
         .select()
         .eq('id', id)
         .maybeSingle();
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getUncheckedLogs({int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> getUnrespondedLogs({int limit = 50}) async {
     final result = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select()
-        .eq('response_status', 'unchecked')
+        .eq('response_status', 'unresponded')
         .order('created_at', ascending: false)
         .limit(limit);
 
@@ -89,47 +89,47 @@ class EventLogRemoteDatasourceImpl implements EventLogRemoteDatasource {
 
   @override
   Future<List<Map<String, dynamic>>> getPendingAlerts({int limit = 50}) async {
-    logger.d('미확인/대응중 알림 조회');
+    logger.d('미대응/대응중 알림 조회');
 
     final result = await _client
-        .from('event_logs')
+        .from('system_logs')
         .select()
         .inFilter('log_level', ['warning', 'error', 'critical'])
-        .inFilter('response_status', ['unchecked', 'in_progress'])
+        .inFilter('response_status', ['unresponded', 'in_progress'])
         .order('created_at', ascending: false)
         .limit(limit);
 
-    logger.i('미확인/대응중 알림 ${result.length}건 조회 완료');
+    logger.i('미대응/대응중 알림 ${result.length}건 조회 완료');
     return List<Map<String, dynamic>>.from(result);
   }
 
   @override
-  Future<Map<String, dynamic>> createEventLog({
+  Future<Map<String, dynamic>> createSystemLog({
     required String source,
     String eventType = 'event',
     String? errorCode,
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   }) async {
-    logger.d('이벤트 로그 생성: source=$source, logLevel=$logLevel');
+    logger.d('시스템 로그 생성: source=$source, logLevel=$logLevel');
 
-    final result = await _client.from('event_logs').insert({
+    final result = await _client.from('system_logs').insert({
       'source': source,
       'event_type': eventType,
       'error_code': errorCode,
       'log_level': logLevel,
       'payload': payload ?? {},
-      'response_status': 'unchecked',
+      'response_status': 'unresponded',
     }).select().single();
 
-    logger.i('이벤트 로그 생성 완료: ${result['id']}');
+    logger.i('시스템 로그 생성 완료: ${result['id']}');
     return result;
   }
 }
 
-/// EventLogRemoteDatasource Provider
+/// SystemLogRemoteDatasource Provider
 @riverpod
-EventLogRemoteDatasource eventLogRemoteDatasource(Ref ref) {
+SystemLogRemoteDatasource systemLogRemoteDatasource(Ref ref) {
   final client = ref.watch(supabaseClientProvider);
-  return EventLogRemoteDatasourceImpl(client);
+  return SystemLogRemoteDatasourceImpl(client);
 }
