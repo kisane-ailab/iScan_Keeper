@@ -15,6 +15,9 @@ CREATE TYPE response_status AS ENUM ('unchecked', 'in_progress', 'completed');
 -- 이벤트 유형 ENUM
 CREATE TYPE event_type AS ENUM ('event', 'health_check');
 
+-- 로그 레벨 ENUM
+CREATE TYPE log_level AS ENUM ('info', 'warning', 'error', 'critical');
+
 
 -- =============================================
 -- 2. 테이블 생성
@@ -38,7 +41,7 @@ CREATE TABLE event_logs (
     source VARCHAR NOT NULL,
     event_type event_type DEFAULT 'event' NOT NULL,
     error_code VARCHAR,
-    log_level VARCHAR DEFAULT 'info',
+    log_level log_level DEFAULT 'info',
     payload JSONB DEFAULT '{}'::jsonb,
     response_status response_status DEFAULT 'unchecked',
     created_at TIMESTAMPTZ DEFAULT now()
@@ -47,7 +50,7 @@ COMMENT ON TABLE event_logs IS '범용 이벤트/에러 로그';
 COMMENT ON COLUMN event_logs.source IS '로그 출처 (machine, web, app 등)';
 COMMENT ON COLUMN event_logs.event_type IS '로그 유형 (event: 단발 이벤트, health_check: 주기적 헬스체크)';
 COMMENT ON COLUMN event_logs.error_code IS '에러 코드';
-COMMENT ON COLUMN event_logs.log_level IS '로그 레벨 (info, warning, error)';
+COMMENT ON COLUMN event_logs.log_level IS '로그 레벨 (info: 정보, warning: 경고, error: 에러, critical: 심각)';
 COMMENT ON COLUMN event_logs.payload IS '상세 데이터 (JSONB)';
 COMMENT ON COLUMN event_logs.response_status IS '대응 상태';
 

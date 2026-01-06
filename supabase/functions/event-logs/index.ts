@@ -11,7 +11,7 @@ interface EventLogRequest {
   source: string;
   eventType?: 'event' | 'health_check';
   errorCode?: string;
-  logLevel?: string;
+  logLevel?: 'info' | 'warning' | 'error' | 'critical';
   payload?: Record<string, unknown>;
   [key: string]: unknown;
 }
