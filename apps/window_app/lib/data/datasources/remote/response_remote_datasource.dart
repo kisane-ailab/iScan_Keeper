@@ -65,7 +65,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
 
     // response_logs 생성
     final responseLog = await _client.from('response_logs').insert({
-      'event_log_id': eventLogId,
+      'system_log_id': eventLogId,
       'user_id': userId,
       'started_at': DateTime.now().toIso8601String(),
     }).select().single();
@@ -93,7 +93,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
     await _client
         .from('response_logs')
         .delete()
-        .eq('event_log_id', eventLogId)
+        .eq('system_log_id', eventLogId)
         .eq('user_id', userId)
         .isFilter('completed_at', null);
 
@@ -123,7 +123,7 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
           'completed_at': DateTime.now().toIso8601String(),
           'memo': memo,
         })
-        .eq('event_log_id', eventLogId)
+        .eq('system_log_id', eventLogId)
         .eq('user_id', userId)
         .isFilter('completed_at', null);
 
