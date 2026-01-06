@@ -17,6 +17,10 @@ abstract class EventLogModel with _$EventLogModel {
     @Default({}) Map<String, dynamic> payload,
     @JsonKey(name: 'response_status') @Default(ResponseStatus.unchecked) ResponseStatus responseStatus,
     @JsonKey(name: 'created_at') required DateTime createdAt,
+    // 대응자 정보
+    @JsonKey(name: 'current_responder_id') String? currentResponderId,
+    @JsonKey(name: 'current_responder_name') String? currentResponderName,
+    @JsonKey(name: 'response_started_at') DateTime? responseStartedAt,
   }) = _EventLogModel;
 
   const EventLogModel._();
@@ -27,6 +31,12 @@ abstract class EventLogModel with _$EventLogModel {
   /// 이벤트인지
   bool get isEvent => eventType.isEvent;
 
+  /// 대응 중인지
+  bool get isBeingResponded => responseStatus == ResponseStatus.inProgress && currentResponderId != null;
+
+  /// 미확인 상태인지
+  bool get isUnchecked => responseStatus == ResponseStatus.unchecked;
+
   /// 알림이 필요한지 (warning 이상 + unchecked)
   bool get needsNotification =>
       logLevel.needsNotification && responseStatus == ResponseStatus.unchecked;
@@ -36,6 +46,10 @@ abstract class EventLogModel with _$EventLogModel {
 
   /// 트레이 알림만 필요한지
   bool get needsTrayOnly => logLevel.needsTrayOnly;
+
+  /// critical이고 미확인인지
+  bool get isCriticalUnchecked =>
+      logLevel == LogLevel.critical && responseStatus == ResponseStatus.unchecked;
 
   factory EventLogModel.fromJson(Map<String, dynamic> json) =>
       _$EventLogModelFromJson(json);

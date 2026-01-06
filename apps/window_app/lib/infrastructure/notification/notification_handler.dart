@@ -37,6 +37,11 @@ class NotificationHandler {
         await _showTrayNotification(log);
         await AppTrayManager.showWindow();
         break;
+      case NotificationAction.alwaysOnTop:
+        // 트레이 알림 + 앱 전면 표시 + 항상 위 (닫기 불가)
+        await _showTrayNotification(log);
+        await AppTrayManager.showWindowAlwaysOnTop();
+        break;
     }
   }
 

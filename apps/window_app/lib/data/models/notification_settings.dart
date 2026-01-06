@@ -7,8 +7,9 @@ part 'notification_settings.g.dart';
 /// 알림 동작 타입
 enum NotificationAction {
   none('none', '알림 없음'),
-  trayOnly('tray_only', '트레이 알림만'),
-  foreground('foreground', '앱 전면 표시');
+  trayOnly('tray_only', '트레이 알림'),
+  foreground('foreground', '전면 표시'),
+  alwaysOnTop('always_on_top', '항상 위');
 
   const NotificationAction(this.value, this.label);
 
@@ -23,9 +24,9 @@ abstract class NotificationSettings with _$NotificationSettings {
     /// warning 레벨 알림 동작
     @Default(NotificationAction.trayOnly) NotificationAction warningAction,
     /// error 레벨 알림 동작
-    @Default(NotificationAction.trayOnly) NotificationAction errorAction,
+    @Default(NotificationAction.foreground) NotificationAction errorAction,
     /// critical 레벨 알림 동작
-    @Default(NotificationAction.foreground) NotificationAction criticalAction,
+    @Default(NotificationAction.alwaysOnTop) NotificationAction criticalAction,
     /// 헬스체크 알림 표시 여부
     @Default(false) bool showHealthCheck,
   }) = _NotificationSettings;

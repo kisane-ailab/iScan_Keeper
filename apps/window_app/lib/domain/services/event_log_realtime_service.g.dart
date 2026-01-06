@@ -42,7 +42,7 @@ final class EventLogRealtimeServiceProvider
 }
 
 String _$eventLogRealtimeServiceHash() =>
-    r'885e7c3f7c3b29baeba111003e7cb379e2bf01a1';
+    r'c3de2232f348e6926cf724007680cd384e500e69';
 
 abstract class _$EventLogRealtimeService
     extends $Notifier<List<EventLogModel>> {

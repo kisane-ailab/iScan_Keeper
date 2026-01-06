@@ -216,7 +216,7 @@ return $default(_that.warningAction,_that.errorAction,_that.criticalAction,_that
 @JsonSerializable()
 
 class _NotificationSettings extends NotificationSettings {
-  const _NotificationSettings({this.warningAction = NotificationAction.trayOnly, this.errorAction = NotificationAction.trayOnly, this.criticalAction = NotificationAction.foreground, this.showHealthCheck = false}): super._();
+  const _NotificationSettings({this.warningAction = NotificationAction.trayOnly, this.errorAction = NotificationAction.foreground, this.criticalAction = NotificationAction.alwaysOnTop, this.showHealthCheck = false}): super._();
   factory _NotificationSettings.fromJson(Map<String, dynamic> json) => _$NotificationSettingsFromJson(json);
 
 /// warning 레벨 알림 동작

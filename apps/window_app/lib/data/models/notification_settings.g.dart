@@ -14,13 +14,13 @@ _NotificationSettings _$NotificationSettingsFromJson(
       NotificationAction.trayOnly,
   errorAction:
       $enumDecodeNullable(_$NotificationActionEnumMap, json['errorAction']) ??
-      NotificationAction.trayOnly,
+      NotificationAction.foreground,
   criticalAction:
       $enumDecodeNullable(
         _$NotificationActionEnumMap,
         json['criticalAction'],
       ) ??
-      NotificationAction.foreground,
+      NotificationAction.alwaysOnTop,
   showHealthCheck: json['showHealthCheck'] as bool? ?? false,
 );
 
@@ -37,4 +37,5 @@ const _$NotificationActionEnumMap = {
   NotificationAction.none: 'none',
   NotificationAction.trayOnly: 'trayOnly',
   NotificationAction.foreground: 'foreground',
+  NotificationAction.alwaysOnTop: 'alwaysOnTop',
 };

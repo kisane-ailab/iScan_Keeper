@@ -67,12 +67,43 @@ class AppTrayManager with TrayListener {
     }
   }
 
+  static bool _isAlwaysOnTop = false;
+
+  /// 항상 위 모드인지 확인
+  static bool get isAlwaysOnTop => _isAlwaysOnTop;
+
   static Future<void> showWindow() async {
     await windowManager.show();
     await windowManager.focus();
   }
 
+  /// 항상 위 모드로 창 표시 (닫기/최소화 불가)
+  static Future<void> showWindowAlwaysOnTop() async {
+    _isAlwaysOnTop = true;
+    await windowManager.show();
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.focus();
+    await windowManager.setPreventClose(true);
+    await windowManager.setMinimizable(false);  // 최소화 불가
+    await windowManager.setSkipTaskbar(false);
+    logger.w('항상 위 모드 활성화 - 대응하기 버튼을 눌러 해제하세요');
+  }
+
+  /// 항상 위 모드 해제
+  static Future<void> releaseAlwaysOnTop() async {
+    _isAlwaysOnTop = false;
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setPreventClose(false);
+    await windowManager.setMinimizable(true);  // 최소화 허용
+    logger.i('항상 위 모드 해제됨');
+  }
+
   static Future<void> hideWindow() async {
+    // 항상 위 모드일 때는 숨기기 불가
+    if (_isAlwaysOnTop) {
+      logger.w('항상 위 모드에서는 창을 숨길 수 없습니다');
+      return;
+    }
     await windowManager.hide();
   }
 
@@ -89,6 +120,11 @@ class AppTrayManager with TrayListener {
 class WindowListenerHandler extends WindowListener {
   @override
   void onWindowClose() async {
+    // 항상 위 모드일 때는 닫기 불가
+    if (AppTrayManager.isAlwaysOnTop) {
+      logger.w('항상 위 모드에서는 창을 닫을 수 없습니다');
+      return;
+    }
     // 창 닫기 버튼 클릭 시 트레이로 숨김 (종료 X)
     await AppTrayManager.hideWindow();
   }

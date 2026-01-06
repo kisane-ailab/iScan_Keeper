@@ -25,6 +25,11 @@ _EventLogModel _$EventLogModelFromJson(Map<String, dynamic> json) =>
           ) ??
           ResponseStatus.unchecked,
       createdAt: DateTime.parse(json['created_at'] as String),
+      currentResponderId: json['current_responder_id'] as String?,
+      currentResponderName: json['current_responder_name'] as String?,
+      responseStartedAt: json['response_started_at'] == null
+          ? null
+          : DateTime.parse(json['response_started_at'] as String),
     );
 
 Map<String, dynamic> _$EventLogModelToJson(_EventLogModel instance) =>
@@ -37,6 +42,9 @@ Map<String, dynamic> _$EventLogModelToJson(_EventLogModel instance) =>
       'payload': instance.payload,
       'response_status': _$ResponseStatusEnumMap[instance.responseStatus]!,
       'created_at': instance.createdAt.toIso8601String(),
+      'current_responder_id': instance.currentResponderId,
+      'current_responder_name': instance.currentResponderName,
+      'response_started_at': instance.responseStartedAt?.toIso8601String(),
     };
 
 const _$EventTypeEnumMap = {
