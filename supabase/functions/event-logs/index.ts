@@ -1,3 +1,8 @@
+// Edge Function: event-logs
+// 설명: 이벤트 로그 생성 API (외부 기기에서 호출)
+// JWT 검증: false (공개 API)
+// 배포일: 2025-01-06
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
