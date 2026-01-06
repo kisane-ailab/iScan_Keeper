@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:window_app/data/models/enums/log_level.dart';
+import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/event_log_model.dart';
 import 'package:window_app/domain/services/event_log_realtime_service.dart';
 
@@ -25,8 +27,11 @@ class AlertViewModel extends _$AlertViewModel {
   AlertState build() {
     // 서비스의 로그 목록 구독
     final logs = ref.watch(eventLogRealtimeServiceProvider);
+    // 미확인 상태이고 알림이 필요한 로그 개수
     final alertCount = logs
-        .where((l) => l.logLevel == 'error' && l.responseStatus == 'unchecked')
+        .where((l) =>
+            l.responseStatus == ResponseStatus.unchecked &&
+            l.logLevel.needsNotification)
         .length;
 
     return AlertState(
@@ -45,21 +50,8 @@ class AlertViewModel extends _$AlertViewModel {
 
   /// 로그가 긴급 알림인지 확인
   bool isAlert(EventLogModel log) {
-    return log.logLevel == 'error' && log.responseStatus == 'unchecked';
-  }
-
-  /// 응답 상태 라벨 반환
-  String getResponseStatusLabel(String status) {
-    switch (status) {
-      case 'unchecked':
-        return '미확인';
-      case 'in_progress':
-        return '처리중';
-      case 'completed':
-        return '완료';
-      default:
-        return status;
-    }
+    return log.responseStatus == ResponseStatus.unchecked &&
+        log.logLevel.needsNotification;
   }
 
   /// 시간 포맷팅

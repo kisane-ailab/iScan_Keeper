@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:window_app/data/models/enums/log_level.dart';
+import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/event_log_model.dart';
+import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/infrastructure/notification/notification_handler.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
@@ -21,19 +24,20 @@ class AlertScreen extends BasePage {
   ]) {
     final viewModel = ref.read(alertViewModelProvider.notifier);
 
-    // 알림 스트림 구독 (log_level error + unchecked)
+    // 알림 스트림 구독
     final subscription = viewModel.alertStream.listen((log) {
-      // Windows 알림 표시
-      NotificationHandler.showEventLogAlert(log);
+      // 알림 설정에 따라 처리
+      final settings = ref.read(notificationSettingsServiceProvider);
+      NotificationHandler.handleEventLog(log, settings);
 
-      // 인앱 스낵바 표시
-      if (context.mounted) {
+      // 인앱 스낵바 표시 (warning 이상일 때)
+      if (context.mounted && log.logLevel.needsNotification) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '긴급! [${log.source}] ${log.errorCode ?? '오류 발생'}',
+              '[${log.logLevel.label}] ${log.source} - ${log.errorCode ?? '알림'}',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: _getColorForLevel(log.logLevel),
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: '확인',
@@ -46,6 +50,19 @@ class AlertScreen extends BasePage {
     });
 
     subscriptions?.add(subscription);
+  }
+
+  Color _getColorForLevel(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return Colors.purple;
+      case LogLevel.error:
+        return Colors.red;
+      case LogLevel.warning:
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
   }
 
   @override
@@ -101,7 +118,7 @@ class AlertScreen extends BasePage {
             ),
             SizedBox(height: 8),
             Text(
-              'log_level error + unchecked 로그 발생 시 알림',
+              '설정에서 알림 레벨별 동작을 변경할 수 있습니다',
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
@@ -116,9 +133,7 @@ class AlertScreen extends BasePage {
         final log = state.logs[index];
         return _LogCard(
           log: log,
-          isAlert: viewModel.isAlert(log),
           formatTime: viewModel.formatTime,
-          getResponseStatusLabel: viewModel.getResponseStatusLabel,
         );
       },
     );
@@ -131,43 +146,101 @@ class AlertScreen extends BasePage {
 class _LogCard extends StatelessWidget {
   const _LogCard({
     required this.log,
-    required this.isAlert,
     required this.formatTime,
-    required this.getResponseStatusLabel,
   });
 
   final EventLogModel log;
-  final bool isAlert;
   final String Function(DateTime) formatTime;
-  final String Function(String) getResponseStatusLabel;
+
+  Color _getLevelColor(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return Colors.purple;
+      case LogLevel.error:
+        return Colors.red;
+      case LogLevel.warning:
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _getLevelIcon(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return Icons.dangerous;
+      case LogLevel.error:
+        return Icons.error;
+      case LogLevel.warning:
+        return Icons.warning;
+      default:
+        return Icons.info_outline;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final levelColor = _getLevelColor(log.logLevel);
+    final isUnchecked = log.responseStatus == ResponseStatus.unchecked;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isAlert ? Colors.red.shade50 : null,
+      color: isUnchecked && log.logLevel.needsNotification
+          ? levelColor.withOpacity(0.1)
+          : null,
       child: ListTile(
         leading: Icon(
-          isAlert ? Icons.error : Icons.info_outline,
-          color: isAlert ? Colors.red : Colors.blue,
+          _getLevelIcon(log.logLevel),
+          color: levelColor,
           size: 32,
         ),
-        title: Text(
-          '[${log.source}] ${log.errorCode ?? 'N/A'}',
-          style: TextStyle(
-            fontWeight: isAlert ? FontWeight.bold : FontWeight.normal,
-          ),
+        title: Row(
+          children: [
+            Text(
+              '[${log.source}]',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: log.isHealthCheck ? Colors.green : Colors.blue,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                log.eventType.label,
+                style: const TextStyle(color: Colors.white, fontSize: 10),
+              ),
+            ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('로그 레벨: ${log.logLevel}'),
-            Text(
-              '응답 상태: ${getResponseStatusLabel(log.responseStatus)}',
-              style: TextStyle(
-                color:
-                    log.responseStatus == 'unchecked' ? Colors.orange : Colors.green,
-              ),
+            if (log.errorCode != null)
+              Text('에러 코드: ${log.errorCode}'),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: levelColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    log.logLevel.label,
+                    style: TextStyle(fontSize: 11, color: levelColor),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  log.responseStatus.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isUnchecked ? Colors.orange : Colors.green,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -179,12 +252,12 @@ class _LogCard extends StatelessWidget {
               formatTime(log.createdAt),
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            if (isAlert)
+            if (log.logLevel == LogLevel.critical)
               Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  color: Colors.purple,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(

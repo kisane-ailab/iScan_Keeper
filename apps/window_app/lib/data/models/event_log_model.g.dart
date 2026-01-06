@@ -10,11 +10,20 @@ _EventLogModel _$EventLogModelFromJson(Map<String, dynamic> json) =>
     _EventLogModel(
       id: json['id'] as String,
       source: json['source'] as String,
-      eventType: json['event_type'] as String? ?? 'event',
+      eventType:
+          $enumDecodeNullable(_$EventTypeEnumMap, json['event_type']) ??
+          EventType.event,
       errorCode: json['error_code'] as String?,
-      logLevel: json['log_level'] as String? ?? 'info',
+      logLevel:
+          $enumDecodeNullable(_$LogLevelEnumMap, json['log_level']) ??
+          LogLevel.info,
       payload: json['payload'] as Map<String, dynamic>? ?? const {},
-      responseStatus: json['response_status'] as String? ?? 'unchecked',
+      responseStatus:
+          $enumDecodeNullable(
+            _$ResponseStatusEnumMap,
+            json['response_status'],
+          ) ??
+          ResponseStatus.unchecked,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
 
@@ -22,10 +31,28 @@ Map<String, dynamic> _$EventLogModelToJson(_EventLogModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'source': instance.source,
-      'event_type': instance.eventType,
+      'event_type': _$EventTypeEnumMap[instance.eventType]!,
       'error_code': instance.errorCode,
-      'log_level': instance.logLevel,
+      'log_level': _$LogLevelEnumMap[instance.logLevel]!,
       'payload': instance.payload,
-      'response_status': instance.responseStatus,
+      'response_status': _$ResponseStatusEnumMap[instance.responseStatus]!,
       'created_at': instance.createdAt.toIso8601String(),
     };
+
+const _$EventTypeEnumMap = {
+  EventType.event: 'event',
+  EventType.healthCheck: 'health_check',
+};
+
+const _$LogLevelEnumMap = {
+  LogLevel.info: 'info',
+  LogLevel.warning: 'warning',
+  LogLevel.error: 'error',
+  LogLevel.critical: 'critical',
+};
+
+const _$ResponseStatusEnumMap = {
+  ResponseStatus.unchecked: 'unchecked',
+  ResponseStatus.inProgress: 'in_progress',
+  ResponseStatus.completed: 'completed',
+};
