@@ -118,7 +118,7 @@ class AlertScreen extends BasePage {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('소스: ${entity.source}'),
-            if (entity.errorCode != null) Text('에러 코드: ${entity.errorCode}'),
+            if (entity.code != null) Text('코드: ${entity.code}'),
             Text('레벨: ${entity.logLevel.label}'),
             const SizedBox(height: 16),
             const Text('이 알림에 대응을 시작하시겠습니까?'),
@@ -308,7 +308,7 @@ class _CriticalAlertBanner extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '[${entity.source}] ${entity.errorCode ?? '알림'}',
+                              '[${entity.source}] ${entity.code ?? '알림'}',
                               style: const TextStyle(color: Colors.white),
                             ),
                             Text(
@@ -430,17 +430,24 @@ class _LogCard extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              entity.eventType.label,
+                              entity.category.label,
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
                           ),
                         ],
                       ),
-                      if (entity.errorCode != null)
+                      if (entity.code != null)
                         Text(
-                          '에러 코드: ${entity.errorCode}',
+                          '코드: ${entity.code}',
                           style: const TextStyle(fontSize: 12),
+                        ),
+                      if (entity.description != null && entity.description!.isNotEmpty)
+                        Text(
+                          entity.description!,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),

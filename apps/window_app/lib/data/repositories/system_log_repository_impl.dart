@@ -43,15 +43,15 @@ class SystemLogRepositoryImpl implements SystemLogRepository {
   @override
   Future<Map<String, dynamic>> createSystemLog({
     required String source,
-    String eventType = 'event',
-    String? errorCode,
+    String category = 'event',
+    String? code,
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   }) async {
     return await _remoteDatasource.createSystemLog(
       source: source,
-      eventType: eventType,
-      errorCode: errorCode,
+      category: category,
+      code: code,
       logLevel: logLevel,
       payload: payload,
     );

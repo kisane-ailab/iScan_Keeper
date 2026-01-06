@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SystemLogModel {
 
- String get id; String get source; String? get description;@JsonKey(name: 'event_type') EventType get eventType;@JsonKey(name: 'error_code') String? get errorCode;@JsonKey(name: 'log_level') LogLevel get logLevel; Map<String, dynamic> get payload;@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus get responseStatus;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'current_responder_id') String? get currentResponderId;@JsonKey(name: 'current_responder_name') String? get currentResponderName;@JsonKey(name: 'response_started_at') DateTime? get responseStartedAt;@JsonKey(name: 'organization_id') String? get organizationId;
+ String get id; String get source; String? get description;@JsonKey(name: 'category') LogCategory get category;@JsonKey(name: 'code') String? get code;@JsonKey(name: 'log_level') LogLevel get logLevel; Map<String, dynamic> get payload;@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus get responseStatus;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'current_responder_id') String? get currentResponderId;@JsonKey(name: 'current_responder_name') String? get currentResponderName;@JsonKey(name: 'response_started_at') DateTime? get responseStartedAt;@JsonKey(name: 'organization_id') String? get organizationId;
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SystemLogModelCopyWith<SystemLogModel> get copyWith => _$SystemLogModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,source,description,eventType,errorCode,logLevel,const DeepCollectionEquality().hash(payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId);
+int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,const DeepCollectionEquality().hash(payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId);
 
 @override
 String toString() {
-  return 'SystemLogModel(id: $id, source: $source, description: $description, eventType: $eventType, errorCode: $errorCode, logLevel: $logLevel, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId)';
+  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SystemLogModelCopyWith<$Res>  {
   factory $SystemLogModelCopyWith(SystemLogModel value, $Res Function(SystemLogModel) _then) = _$SystemLogModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String source, String? description,@JsonKey(name: 'event_type') EventType eventType,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'log_level') LogLevel logLevel, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId
+ String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
@@ -65,13 +65,13 @@ class _$SystemLogModelCopyWithImpl<$Res>
 
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? eventType = null,Object? errorCode = freezed,Object? logLevel = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as EventType,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as LogCategory,code: freezed == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String?,logLevel: null == logLevel ? _self.logLevel : logLevel // ignore: cast_nullable_to_non_nullable
 as LogLevel,payload: null == payload ? _self.payload : payload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,responseStatus: null == responseStatus ? _self.responseStatus : responseStatus // ignore: cast_nullable_to_non_nullable
@@ -165,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'event_type')  EventType eventType, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SystemLogModel() when $default != null:
-return $default(_that.id,_that.source,_that.description,_that.eventType,_that.errorCode,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
   return orElse();
 
 }
@@ -186,10 +186,10 @@ return $default(_that.id,_that.source,_that.description,_that.eventType,_that.er
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'event_type')  EventType eventType, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _SystemLogModel():
-return $default(_that.id,_that.source,_that.description,_that.eventType,_that.errorCode,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +206,10 @@ return $default(_that.id,_that.source,_that.description,_that.eventType,_that.er
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String source,  String? description, @JsonKey(name: 'event_type')  EventType eventType, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _SystemLogModel() when $default != null:
-return $default(_that.id,_that.source,_that.description,_that.eventType,_that.errorCode,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId);case _:
   return null;
 
 }
@@ -221,14 +221,14 @@ return $default(_that.id,_that.source,_that.description,_that.eventType,_that.er
 @JsonSerializable()
 
 class _SystemLogModel implements SystemLogModel {
-  const _SystemLogModel({required this.id, required this.source, this.description, @JsonKey(name: 'event_type') this.eventType = EventType.event, @JsonKey(name: 'error_code') this.errorCode, @JsonKey(name: 'log_level') this.logLevel = LogLevel.info, final  Map<String, dynamic> payload = const {}, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) this.responseStatus = ResponseStatus.unresponded, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'current_responder_id') this.currentResponderId, @JsonKey(name: 'current_responder_name') this.currentResponderName, @JsonKey(name: 'response_started_at') this.responseStartedAt, @JsonKey(name: 'organization_id') this.organizationId}): _payload = payload;
+  const _SystemLogModel({required this.id, required this.source, this.description, @JsonKey(name: 'category') this.category = LogCategory.event, @JsonKey(name: 'code') this.code, @JsonKey(name: 'log_level') this.logLevel = LogLevel.info, final  Map<String, dynamic> payload = const {}, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) this.responseStatus = ResponseStatus.unresponded, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'current_responder_id') this.currentResponderId, @JsonKey(name: 'current_responder_name') this.currentResponderName, @JsonKey(name: 'response_started_at') this.responseStartedAt, @JsonKey(name: 'organization_id') this.organizationId}): _payload = payload;
   factory _SystemLogModel.fromJson(Map<String, dynamic> json) => _$SystemLogModelFromJson(json);
 
 @override final  String id;
 @override final  String source;
 @override final  String? description;
-@override@JsonKey(name: 'event_type') final  EventType eventType;
-@override@JsonKey(name: 'error_code') final  String? errorCode;
+@override@JsonKey(name: 'category') final  LogCategory category;
+@override@JsonKey(name: 'code') final  String? code;
 @override@JsonKey(name: 'log_level') final  LogLevel logLevel;
  final  Map<String, dynamic> _payload;
 @override@JsonKey() Map<String, dynamic> get payload {
@@ -257,16 +257,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,source,description,eventType,errorCode,logLevel,const DeepCollectionEquality().hash(_payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId);
+int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,const DeepCollectionEquality().hash(_payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId);
 
 @override
 String toString() {
-  return 'SystemLogModel(id: $id, source: $source, description: $description, eventType: $eventType, errorCode: $errorCode, logLevel: $logLevel, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId)';
+  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId)';
 }
 
 
@@ -277,7 +277,7 @@ abstract mixin class _$SystemLogModelCopyWith<$Res> implements $SystemLogModelCo
   factory _$SystemLogModelCopyWith(_SystemLogModel value, $Res Function(_SystemLogModel) _then) = __$SystemLogModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String source, String? description,@JsonKey(name: 'event_type') EventType eventType,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'log_level') LogLevel logLevel, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId
+ String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
@@ -294,13 +294,13 @@ class __$SystemLogModelCopyWithImpl<$Res>
 
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? eventType = null,Object? errorCode = freezed,Object? logLevel = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,}) {
   return _then(_SystemLogModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as EventType,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as LogCategory,code: freezed == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String?,logLevel: null == logLevel ? _self.logLevel : logLevel // ignore: cast_nullable_to_non_nullable
 as LogLevel,payload: null == payload ? _self._payload : payload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,responseStatus: null == responseStatus ? _self.responseStatus : responseStatus // ignore: cast_nullable_to_non_nullable

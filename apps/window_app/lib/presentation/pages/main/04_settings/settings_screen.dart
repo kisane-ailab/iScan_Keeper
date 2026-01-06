@@ -44,7 +44,7 @@ class SettingsScreen extends BasePage {
         _NotificationActionTile(
           title: '경고 (Warning)',
           subtitle: '경고 수준의 로그 발생 시',
-          color: Colors.orange,
+          color: Colors.amber,
           currentAction: settings.warningAction,
           onChanged: settingsService.setWarningAction,
         ),
@@ -53,7 +53,7 @@ class SettingsScreen extends BasePage {
         _NotificationActionTile(
           title: '에러 (Error)',
           subtitle: '에러 수준의 로그 발생 시',
-          color: Colors.red,
+          color: Colors.orange,
           currentAction: settings.errorAction,
           onChanged: settingsService.setErrorAction,
         ),
@@ -62,7 +62,7 @@ class SettingsScreen extends BasePage {
         _NotificationActionTile(
           title: '심각 (Critical)',
           subtitle: '심각한 오류 발생 시',
-          color: Colors.purple,
+          color: Colors.red,
           currentAction: settings.criticalAction,
           onChanged: settingsService.setCriticalAction,
         ),

@@ -1,4 +1,4 @@
-import 'package:window_app/data/models/enums/event_type.dart';
+import 'package:window_app/data/models/enums/log_category.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/system_log_model.dart';
@@ -11,8 +11,8 @@ class SystemLogEntity {
   final String id;
   final String source;
   final String? description;
-  final EventType eventType;
-  final String? errorCode;
+  final LogCategory category;
+  final String? code;
   final LogLevel logLevel;
   final Map<String, dynamic> payload;
   final ResponseStatus responseStatus;
@@ -26,8 +26,8 @@ class SystemLogEntity {
     required this.id,
     required this.source,
     this.description,
-    required this.eventType,
-    this.errorCode,
+    required this.category,
+    this.code,
     required this.logLevel,
     required this.payload,
     required this.responseStatus,
@@ -45,8 +45,8 @@ class SystemLogEntity {
       id: model.id,
       source: model.source,
       description: model.description,
-      eventType: model.eventType,
-      errorCode: model.errorCode,
+      category: model.category,
+      code: model.code,
       logLevel: model.logLevel,
       payload: model.payload,
       responseStatus: model.responseStatus,
@@ -95,10 +95,10 @@ class SystemLogEntity {
   // ===== 비즈니스 로직 =====
 
   /// 헬스체크인지
-  bool get isHealthCheck => eventType.isHealthCheck;
+  bool get isHealthCheck => category.isHealthCheck;
 
   /// 이벤트인지
-  bool get isEvent => eventType.isEvent;
+  bool get isEvent => category.isEvent;
 
   /// 대응 중인지
   bool get isBeingResponded =>
@@ -129,8 +129,8 @@ class SystemLogEntity {
     final buffer = StringBuffer();
     buffer.write('출처: $source');
 
-    if (errorCode != null) {
-      buffer.write(' | 코드: $errorCode');
+    if (code != null) {
+      buffer.write(' | 코드: $code');
     }
 
     buffer.write(' | ${logLevel.label}');

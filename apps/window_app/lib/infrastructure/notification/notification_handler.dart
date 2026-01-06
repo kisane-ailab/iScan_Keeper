@@ -90,11 +90,15 @@ class NotificationHandler {
     final buffer = StringBuffer();
     buffer.writeln('출처: ${entity.source}');
 
-    if (entity.errorCode != null) {
-      buffer.writeln('에러 코드: ${entity.errorCode}');
+    if (entity.description != null && entity.description!.isNotEmpty) {
+      buffer.writeln(entity.description!);
     }
 
-    buffer.writeln('유형: ${entity.eventType.label}');
+    if (entity.code != null) {
+      buffer.writeln('코드: ${entity.code}');
+    }
+
+    buffer.writeln('유형: ${entity.category.label}');
     buffer.write('시간: ${entity.formattedCreatedAt}');
 
     return buffer.toString();

@@ -27,8 +27,8 @@ abstract class SystemLogRemoteDatasource {
   /// 시스템 로그 생성 (테스트용)
   Future<Map<String, dynamic>> createSystemLog({
     required String source,
-    String eventType = 'event',
-    String? errorCode,
+    String category = 'event',
+    String? code,
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   });
@@ -106,8 +106,8 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
   @override
   Future<Map<String, dynamic>> createSystemLog({
     required String source,
-    String eventType = 'event',
-    String? errorCode,
+    String category = 'event',
+    String? code,
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   }) async {
@@ -115,8 +115,8 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
 
     final result = await _client.from('system_logs').insert({
       'source': source,
-      'event_type': eventType,
-      'error_code': errorCode,
+      'category': category,
+      'code': code,
       'log_level': logLevel,
       'payload': payload ?? {},
       'response_status': 'unresponded',

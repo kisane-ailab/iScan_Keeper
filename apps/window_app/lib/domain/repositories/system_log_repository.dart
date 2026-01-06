@@ -20,8 +20,8 @@ abstract class SystemLogRepository {
   /// 시스템 로그 생성 (테스트용)
   Future<Map<String, dynamic>> createSystemLog({
     required String source,
-    String eventType = 'event',
-    String? errorCode,
+    String category = 'event',
+    String? code,
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   });

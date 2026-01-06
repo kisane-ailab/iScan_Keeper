@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:window_app/data/models/enums/event_type.dart';
+import 'package:window_app/data/models/enums/log_category.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
 
@@ -14,8 +14,8 @@ abstract class SystemLogModel with _$SystemLogModel {
     required String id,
     required String source,
     String? description,
-    @JsonKey(name: 'event_type') @Default(EventType.event) EventType eventType,
-    @JsonKey(name: 'error_code') String? errorCode,
+    @JsonKey(name: 'category') @Default(LogCategory.event) LogCategory category,
+    @JsonKey(name: 'code') String? code,
     @JsonKey(name: 'log_level') @Default(LogLevel.info) LogLevel logLevel,
     @Default({}) Map<String, dynamic> payload,
     @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) @Default(ResponseStatus.unresponded) ResponseStatus responseStatus,

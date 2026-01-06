@@ -11,10 +11,10 @@ _SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       source: json['source'] as String,
       description: json['description'] as String?,
-      eventType:
-          $enumDecodeNullable(_$EventTypeEnumMap, json['event_type']) ??
-          EventType.event,
-      errorCode: json['error_code'] as String?,
+      category:
+          $enumDecodeNullable(_$LogCategoryEnumMap, json['category']) ??
+          LogCategory.event,
+      code: json['code'] as String?,
       logLevel:
           $enumDecodeNullable(_$LogLevelEnumMap, json['log_level']) ??
           LogLevel.info,
@@ -40,8 +40,8 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'id': instance.id,
       'source': instance.source,
       'description': instance.description,
-      'event_type': _$EventTypeEnumMap[instance.eventType]!,
-      'error_code': instance.errorCode,
+      'category': _$LogCategoryEnumMap[instance.category]!,
+      'code': instance.code,
       'log_level': _$LogLevelEnumMap[instance.logLevel]!,
       'payload': instance.payload,
       'response_status': _$ResponseStatusEnumMap[instance.responseStatus]!,
@@ -52,9 +52,9 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'organization_id': instance.organizationId,
     };
 
-const _$EventTypeEnumMap = {
-  EventType.event: 'event',
-  EventType.healthCheck: 'health_check',
+const _$LogCategoryEnumMap = {
+  LogCategory.event: 'event',
+  LogCategory.healthCheck: 'health_check',
 };
 
 const _$LogLevelEnumMap = {
