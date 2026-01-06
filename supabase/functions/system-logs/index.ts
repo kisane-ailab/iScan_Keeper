@@ -1,7 +1,8 @@
-// Edge Function: event-logs
-// 설명: 이벤트 로그 생성 API (외부 기기에서 호출)
+// Edge Function: system-logs
+// 설명: 시스템 로그 생성 API (외부 기기에서 호출)
 // JWT 검증: false (공개 API)
 // 배포일: 2025-01-06
+// 업데이트: 2026-01-06 (event_type → category, error_code → code)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -12,10 +13,11 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-interface EventLogRequest {
+interface SystemLogRequest {
   source: string;
-  eventType?: 'event' | 'health_check';
-  errorCode?: string;
+  description?: string;
+  category?: 'event' | 'health_check';
+  code?: string;
   logLevel?: 'info' | 'warning' | 'error' | 'critical';
   payload?: Record<string, unknown>;
   [key: string]: unknown;
@@ -51,7 +53,7 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let body: EventLogRequest;
+    let body: SystemLogRequest;
     try {
       body = await req.json();
     } catch (parseErr) {
@@ -71,18 +73,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { source, eventType, errorCode, logLevel, payload: explicitPayload, ...restFields } = body;
+    const { source, description, category, code, logLevel, payload: explicitPayload, ...restFields } = body;
     const payload = explicitPayload || (Object.keys(restFields).length > 0 ? restFields : {});
 
     const { data, error } = await supabase
-      .from("event_logs")
+      .from("system_logs")
       .insert({
         source: source,
-        event_type: eventType || "event",
-        error_code: errorCode || null,
+        description: description || null,
+        category: category || "event",
+        code: code || null,
         log_level: logLevel || "info",
         payload: payload,
-        response_status: "unchecked"
+        response_status: "unresponded"
       })
       .select()
       .single();
@@ -106,8 +109,9 @@ Deno.serve(async (req: Request) => {
         data: {
           id: data.id,
           source: data.source,
-          event_type: data.event_type,
-          error_code: data.error_code,
+          description: data.description,
+          category: data.category,
+          code: data.code,
           log_level: data.log_level,
           response_status: data.response_status,
           created_at: data.created_at

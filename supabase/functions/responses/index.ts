@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
 
       // 트랜잭션: 이미 대응중인지 확인 후 담당 선언
       const { data: existingLog, error: checkError } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .select("response_status, current_responder_id")
         .eq("id", eventLogId)
         .single();
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
       const { data: responseLog, error: insertError } = await supabase
         .from("response_logs")
         .insert({
-          event_log_id: eventLogId,
+          system_log_id: eventLogId,
           user_id: userId,
         })
         .select()
@@ -82,9 +82,9 @@ Deno.serve(async (req: Request) => {
         return errorResponse("Failed to create response log", 500, insertError.message);
       }
 
-      // event_logs 상태 업데이트
+      // system_logs 상태 업데이트
       const { error: updateError } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .update({
           response_status: "in_progress",
           current_responder_id: userId,
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
       // response_logs 조회
       const { data: responseLog, error: fetchError } = await supabase
         .from("response_logs")
-        .select("event_log_id, user_id")
+        .select("system_log_id, user_id")
         .eq("id", responseId)
         .single();
 
@@ -133,16 +133,16 @@ Deno.serve(async (req: Request) => {
         return errorResponse("Failed to delete response log", 500, deleteError.message);
       }
 
-      // event_logs 상태 복원 (미확인으로)
+      // system_logs 상태 복원 (미확인으로)
       await supabase
-        .from("event_logs")
+        .from("system_logs")
         .update({
-          response_status: "unchecked",
+          response_status: "unresponded",
           current_responder_id: null,
           current_responder_name: null,
           response_started_at: null,
         })
-        .eq("id", responseLog.event_log_id);
+        .eq("id", responseLog.system_log_id);
 
       // users 상태 복원
       await supabase
@@ -162,7 +162,7 @@ Deno.serve(async (req: Request) => {
       // response_logs 조회
       const { data: responseLog, error: fetchError } = await supabase
         .from("response_logs")
-        .select("event_log_id, user_id")
+        .select("system_log_id, user_id")
         .eq("id", responseId)
         .single();
 
@@ -183,13 +183,13 @@ Deno.serve(async (req: Request) => {
         return errorResponse("Failed to complete response", 500, updateError.message);
       }
 
-      // event_logs 상태 변경
+      // system_logs 상태 변경
       await supabase
-        .from("event_logs")
+        .from("system_logs")
         .update({
           response_status: "completed",
         })
-        .eq("id", responseLog.event_log_id);
+        .eq("id", responseLog.system_log_id);
 
       // users 상태 복원
       await supabase
@@ -229,7 +229,7 @@ Deno.serve(async (req: Request) => {
         .from("response_logs")
         .select(`
           *,
-          event_log:event_logs(*)
+          system_log:system_logs(*)
         `)
         .eq("user_id", userId)
         .order("started_at", { ascending: false })
@@ -248,7 +248,7 @@ Deno.serve(async (req: Request) => {
         .from("response_logs")
         .select(`
           *,
-          event_log:event_logs(*),
+          system_log:system_logs(*),
           user:users(id, name, email)
         `)
         .eq("id", action)
@@ -272,7 +272,7 @@ Deno.serve(async (req: Request) => {
         .from("response_logs")
         .select(`
           *,
-          event_log:event_logs(*),
+          system_log:system_logs(*),
           user:users(id, name, email)
         `, { count: "exact" });
 

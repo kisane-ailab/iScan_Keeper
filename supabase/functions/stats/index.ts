@@ -174,7 +174,7 @@ Deno.serve(async (req: Request) => {
         .from("response_logs")
         .select(`
           *,
-          event_log:event_logs(*)
+          system_log:system_logs(*)
         `, { count: "exact" })
         .eq("user_id", userId);
 
@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
         .from("response_logs")
         .select(`
           *,
-          event_log:event_logs(*),
+          system_log:system_logs(*),
           user:users(id, name, email)
         `, { count: "exact" })
         .gte("started_at", `${fromParam}T00:00:00Z`)
@@ -254,21 +254,21 @@ Deno.serve(async (req: Request) => {
     if (action === "overview") {
       // 전체 이벤트 로그 통계
       const { count: totalEvents } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .select("*", { count: "exact", head: true });
 
       const { count: uncheckedEvents } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .select("*", { count: "exact", head: true })
-        .eq("response_status", "unchecked");
+        .eq("response_status", "unresponded");
 
       const { count: inProgressEvents } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .select("*", { count: "exact", head: true })
         .eq("response_status", "in_progress");
 
       const { count: completedEvents } = await supabase
-        .from("event_logs")
+        .from("system_logs")
         .select("*", { count: "exact", head: true })
         .eq("response_status", "completed");
 
