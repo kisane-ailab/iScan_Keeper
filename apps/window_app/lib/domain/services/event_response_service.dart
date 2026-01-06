@@ -2,10 +2,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/event_log_model.dart';
+import 'package:window_app/data/repositories/response_repository_impl.dart';
+import 'package:window_app/data/repositories/user_repository_impl.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_log_realtime_service.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
-import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 
 part 'event_response_service.g.dart';
@@ -24,20 +25,13 @@ class EventResponseService extends _$EventResponseService {
     final userId = authState.user?.id;
     if (userId == null) return null;
 
-    final client = ref.read(supabaseClientProvider);
-    final result = await client
-        .from('users')
-        .select('id, name, email')
-        .eq('id', userId)
-        .maybeSingle();
-
-    return result;
+    final userRepository = ref.read(userRepositoryProvider);
+    return await userRepository.getUser(userId);
   }
 
   /// 대응 시작
   Future<bool> startResponse(EventLogModel log) async {
     try {
-      final client = ref.read(supabaseClientProvider);
       final userInfo = await _getCurrentUserInfo();
 
       if (userInfo == null) {
@@ -54,21 +48,13 @@ class EventResponseService extends _$EventResponseService {
         return false;
       }
 
-      // 트랜잭션으로 처리
-      // 1. response_logs에 기록 추가
-      await client.from('response_logs').insert({
-        'event_log_id': log.id,
-        'user_id': userId,
-        'started_at': DateTime.now().toIso8601String(),
-      });
-
-      // 2. event_logs 업데이트
-      await client.from('event_logs').update({
-        'response_status': ResponseStatus.inProgress.value,
-        'current_responder_id': userId,
-        'current_responder_name': userName,
-        'response_started_at': DateTime.now().toIso8601String(),
-      }).eq('id', log.id);
+      // Repository를 통해 대응 시작
+      final responseRepository = ref.read(responseRepositoryProvider);
+      await responseRepository.startResponse(
+        log: log,
+        userId: userId,
+        userName: userName,
+      );
 
       // 내 대응 목록에 추가
       state = [...state, log.id];
@@ -100,7 +86,6 @@ class EventResponseService extends _$EventResponseService {
   /// 대응 포기 (미확인으로 되돌림)
   Future<bool> abandonResponse(EventLogModel log) async {
     try {
-      final client = ref.read(supabaseClientProvider);
       final userInfo = await _getCurrentUserInfo();
 
       if (userInfo == null) return false;
@@ -113,21 +98,12 @@ class EventResponseService extends _$EventResponseService {
         return false;
       }
 
-      // 1. response_logs에서 삭제 (완료되지 않은 것)
-      await client
-          .from('response_logs')
-          .delete()
-          .eq('event_log_id', log.id)
-          .eq('user_id', userId)
-          .isFilter('completed_at', null);
-
-      // 2. event_logs를 미확인으로 되돌림
-      await client.from('event_logs').update({
-        'response_status': ResponseStatus.unchecked.value,
-        'current_responder_id': null,
-        'current_responder_name': null,
-        'response_started_at': null,
-      }).eq('id', log.id);
+      // Repository를 통해 대응 취소
+      final responseRepository = ref.read(responseRepositoryProvider);
+      await responseRepository.cancelResponse(
+        log: log,
+        userId: userId,
+      );
 
       // 내 대응 목록에서 제거
       state = state.where((id) => id != log.id).toList();
@@ -143,28 +119,19 @@ class EventResponseService extends _$EventResponseService {
   /// 대응 완료
   Future<bool> completeResponse(EventLogModel log, String memo) async {
     try {
-      final client = ref.read(supabaseClientProvider);
       final userInfo = await _getCurrentUserInfo();
 
       if (userInfo == null) return false;
 
       final userId = userInfo['id'] as String;
 
-      // 1. response_logs 업데이트
-      await client
-          .from('response_logs')
-          .update({
-            'completed_at': DateTime.now().toIso8601String(),
-            'memo': memo,
-          })
-          .eq('event_log_id', log.id)
-          .eq('user_id', userId)
-          .isFilter('completed_at', null);
-
-      // 2. event_logs 완료 처리
-      await client.from('event_logs').update({
-        'response_status': ResponseStatus.completed.value,
-      }).eq('id', log.id);
+      // Repository를 통해 대응 완료
+      final responseRepository = ref.read(responseRepositoryProvider);
+      await responseRepository.completeResponse(
+        log: log,
+        userId: userId,
+        memo: memo,
+      );
 
       // 내 대응 목록에서 제거
       state = state.where((id) => id != log.id).toList();

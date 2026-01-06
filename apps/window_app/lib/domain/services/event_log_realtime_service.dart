@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/event_log_model.dart';
+import 'package:window_app/data/repositories/event_log_repository_impl.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
@@ -36,16 +37,10 @@ class EventLogRealtimeService extends _$EventLogRealtimeService {
   /// 기존 미확인/대응중 알림 로그 조회 (앱 시작 시)
   Future<void> _fetchPendingAlerts() async {
     try {
-      final client = ref.read(supabaseClientProvider);
+      final eventLogRepository = ref.read(eventLogRepositoryProvider);
 
       // warning, error, critical 레벨의 미확인/대응중 로그 조회
-      final response = await client
-          .from('event_logs')
-          .select()
-          .inFilter('log_level', ['warning', 'error', 'critical'])
-          .inFilter('response_status', ['unchecked', 'in_progress'])
-          .order('created_at', ascending: false)
-          .limit(50);
+      final response = await eventLogRepository.getPendingAlerts(limit: 50);
 
       _logger.i('미확인/대응중 알림 ${response.length}건 조회 완료');
 
