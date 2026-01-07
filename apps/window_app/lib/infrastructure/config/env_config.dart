@@ -18,4 +18,11 @@ abstract class EnvConfig {
 
   @EnviedField(varName: 'SUPABASE_ANON_KEY')
   static const String supabaseAnonKey = _EnvConfig.supabaseAnonKey;
+
+  // GitHub Configuration (for auto-update)
+  @EnviedField(varName: 'GITHUB_OWNER', defaultValue: 'kisane')
+  static const String githubOwner = _EnvConfig.githubOwner;
+
+  @EnviedField(varName: 'GITHUB_REPO', defaultValue: 'iScan_Keeper')
+  static const String githubRepo = _EnvConfig.githubRepo;
 }

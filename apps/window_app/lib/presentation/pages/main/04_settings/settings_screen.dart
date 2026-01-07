@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/notification_settings.dart';
+import 'package:window_app/domain/services/app_updater_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
 
@@ -82,14 +83,11 @@ class SettingsScreen extends BasePage {
 
         const Divider(height: 32),
 
-        // 앱 정보
+        // 앱 정보 및 업데이트
         const _SectionHeader(title: '앱 정보', icon: Icons.info_outline),
         const SizedBox(height: 8),
 
-        const ListTile(
-          title: Text('버전'),
-          trailing: Text('1.0.0'),
-        ),
+        _AppUpdateSection(),
       ],
     );
   }
@@ -191,6 +189,138 @@ class _NotificationActionTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AppUpdateSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updateState = ref.watch(appUpdaterServiceProvider);
+    final updaterService = ref.read(appUpdaterServiceProvider.notifier);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 현재 버전
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('현재 버전'),
+              trailing: Text(
+                updateState.currentVersion ?? '로딩 중...',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+
+            const Divider(),
+
+            // 업데이트 상태
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('업데이트 확인'),
+              subtitle: _buildUpdateSubtitle(updateState),
+              trailing: _buildUpdateAction(context, updateState, updaterService),
+            ),
+
+            // 다운로드 진행률
+            if (updateState.isDownloading) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: updateState.downloadProgress),
+              const SizedBox(height: 4),
+              Text(
+                '${(updateState.downloadProgress * 100).toStringAsFixed(0)}% 다운로드 중...',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+
+            // 에러 메시지
+            if (updateState.errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        updateState.errorMessage!,
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: updaterService.clearError,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpdateSubtitle(AppUpdateState state) {
+    if (state.isChecking) {
+      return const Text('확인 중...');
+    }
+    if (state.isDownloading) {
+      return const Text('다운로드 중...');
+    }
+    if (state.updateAvailable) {
+      return Text('새 버전 ${state.newVersion} 사용 가능');
+    }
+    return const Text('최신 버전입니다');
+  }
+
+  Widget _buildUpdateAction(
+    BuildContext context,
+    AppUpdateState state,
+    AppUpdaterService service,
+  ) {
+    if (state.isChecking) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+
+    if (state.isDownloading) {
+      return const SizedBox.shrink();
+    }
+
+    if (state.isDownloaded) {
+      return FilledButton.icon(
+        onPressed: () => service.restartApp(),
+        icon: const Icon(Icons.restart_alt),
+        label: const Text('재시작'),
+      );
+    }
+
+    if (state.updateAvailable) {
+      return FilledButton(
+        onPressed: () => service.startUpdate(),
+        child: const Text('업데이트'),
+      );
+    }
+
+    return IconButton(
+      onPressed: () => service.checkForUpdates(),
+      icon: const Icon(Icons.refresh),
+      tooltip: '업데이트 확인',
     );
   }
 }

@@ -1,0 +1,96 @@
+name: Release Window App
+
+on:
+  push:
+    tags:
+      - 'window-app/v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get version from tag
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace 'window-app/v', ''
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Install dependencies
+        working-directory: apps/window_app
+        run: flutter pub get
+
+      - name: Build with desktop_updater
+        working-directory: apps/window_app
+        run: |
+          dart run desktop_updater:release windows
+          dart run desktop_updater:archive windows
+
+      - name: Prepare release files
+        working-directory: apps/window_app
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $buildNumber = (Get-Content pubspec.yaml | Select-String 'version:\s*(\d+\.\d+\.\d+)\+(\d+)').Matches.Groups[2].Value
+          $distFolder = "dist/1/$version+$buildNumber-windows"
+
+          # Create zip for release
+          Compress-Archive -Path "$distFolder/*" -DestinationPath "dist/iScanKeeper-$version-windows.zip"
+        shell: pwsh
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Window App v${{ steps.version.outputs.VERSION }}
+          files: |
+            apps/window_app/dist/iScanKeeper-${{ steps.version.outputs.VERSION }}-windows.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update app-archive.json
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $owner = "${{ github.repository_owner }}"
+          $repo = "${{ github.event.repository.name }}"
+          $date = Get-Date -Format "yyyy-MM-dd"
+
+          $existingContent = Get-Content -Path "releases/app-archive.json" -Raw | ConvertFrom-Json
+
+          $newItem = @{
+            version = $version
+            shortVersion = [int]($existingContent.items.Count + 1)
+            changes = @(
+              @{
+                type = "feat"
+                message = "Version $version release"
+              }
+            )
+            date = $date
+            mandatory = $false
+            url = "https://github.com/$owner/$repo/releases/download/window-app/v$version/"
+            platform = "windows"
+          }
+
+          $existingContent.items += $newItem
+
+          $existingContent | ConvertTo-Json -Depth 10 | Set-Content -Path "releases/app-archive.json"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add releases/app-archive.json
+          git commit -m "chore: Update app-archive.json to v$version"
+          git push origin HEAD:main
+        shell: pwsh

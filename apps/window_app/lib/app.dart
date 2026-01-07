@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:desktop_updater/desktop_updater.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:window_app/domain/entities/system_log_entity.dart';
+import 'package:window_app/domain/services/app_updater_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/infrastructure/notification/notification_handler.dart';
@@ -48,6 +50,9 @@ class _WindowAppState extends ConsumerState<WindowApp> {
     // Realtime 서비스 시작 (앱 전체에서 백그라운드 구독)
     ref.watch(systemLogRealtimeServiceProvider);
 
+    // 업데이터 서비스 활성화
+    final updaterService = ref.watch(appUpdaterServiceProvider.notifier);
+
     return MaterialApp.router(
       title: 'iScan Keeper',
       debugShowCheckedModeBanner: false,
@@ -57,6 +62,15 @@ class _WindowAppState extends ConsumerState<WindowApp> {
         useMaterial3: true,
       ),
       routerConfig: ref.watch(appRouterProvider),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            child ?? const SizedBox.shrink(),
+            // 업데이트 다이얼로그 리스너
+            UpdateDialogListener(controller: updaterService.controller),
+          ],
+        );
+      },
     );
   }
 }

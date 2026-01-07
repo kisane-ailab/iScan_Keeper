@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:window_app/infrastructure/config/env_config.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/webview/webview_controller.dart';
 
@@ -27,12 +30,39 @@ abstract class DashboardState with _$DashboardState {
 class DashboardViewModel extends _$DashboardViewModel {
   AppWebViewController get _controller => ref.read(appWebViewControllerProvider);
   Logger get _logger => ref.read(appLoggerProvider);
+  Timer? _loadingTimeout;
 
   @override
   DashboardState build() {
     // 초기화 시 현재 네비게이션 상태 확인
     _initNavigationState();
+
+    // 타임아웃 시작 (15초)
+    _startLoadingTimeout();
+
+    ref.onDispose(() {
+      _loadingTimeout?.cancel();
+    });
+
     return const DashboardState();
+  }
+
+  /// 로딩 타임아웃 시작
+  void _startLoadingTimeout() {
+    _loadingTimeout?.cancel();
+    _loadingTimeout = Timer(const Duration(seconds: 15), () {
+      if (state.isLoading && state.progress < 0.1) {
+        _logger.e('로딩 타임아웃 - URL: ${EnvConfig.dashboardUrl}');
+        setError(
+          '연결 시간 초과 (15초)\n\n'
+          'URL: ${EnvConfig.dashboardUrl}\n\n'
+          '가능한 원인:\n'
+          '• 서버가 실행 중이 아님\n'
+          '• 네트워크 연결 문제\n'
+          '• 방화벽 차단'
+        );
+      }
+    });
   }
 
   /// 초기 네비게이션 상태 설정
@@ -68,6 +98,7 @@ class DashboardViewModel extends _$DashboardViewModel {
   /// 로딩 완료
   Future<void> onLoadStop(String? url) async {
     _logger.d('페이지 로딩 완료 - URL: $url');
+    _loadingTimeout?.cancel();
 
     final canGoBack = await _controller.canGoBack();
     final canGoForward = await _controller.canGoForward();

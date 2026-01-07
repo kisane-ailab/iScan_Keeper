@@ -20,4 +20,8 @@ final class _EnvConfig {
 
   static const String supabaseAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVieGtiYXd3Ym5kcHRneW5wdnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1OTI5MDgsImV4cCI6MjA4MzE2ODkwOH0.XYS5K2iHhdqz2kZKaWBJDcFJxoRLOSrP4EoXOMRdxDY';
+
+  static const String githubOwner = 'kisane';
+
+  static const String githubRepo = 'iScan_Keeper';
 }

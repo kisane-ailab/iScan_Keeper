@@ -1,0 +1,20 @@
+{
+  "appName": "iScan Keeper",
+  "description": "iScan 장비 모니터링 및 관리 시스템",
+  "items": [
+    {
+      "version": "1.0.0",
+      "shortVersion": 1,
+      "changes": [
+        {
+          "type": "feat",
+          "message": "Initial release"
+        }
+      ],
+      "date": "2026-01-07",
+      "mandatory": false,
+      "url": "https://github.com/kisane/iScan_Keeper/releases/download/window-app/v1.0.0/",
+      "platform": "windows"
+    }
+  ]
+}

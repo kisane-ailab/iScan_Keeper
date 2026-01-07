@@ -5,3 +5,7 @@
 # Flutter/Dart 관련
 .dart_tool/
 build/
+# Build outputs
+dist/
+build/
+*.exe

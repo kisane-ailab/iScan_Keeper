@@ -62,23 +62,58 @@ class DashboardScreen extends BasePage {
 
   Widget _buildErrorWidget(DashboardState state, DashboardViewModel viewModel) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
-          const Text('WebView 오류가 발생했습니다'),
-          const SizedBox(height: 8),
-          Text(
-            state.errorMessage ?? '',
-            style: const TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => viewModel.clearError(),
-            child: const Text('다시 시도'),
-          ),
-        ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'WebView 오류가 발생했습니다',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '대시보드 URL: ${EnvConfig.dashboardUrl}',
+                    style: const TextStyle(fontSize: 12, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.errorMessage ?? '알 수 없는 오류',
+                    style: const TextStyle(fontSize: 13, color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => viewModel.clearError(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('다시 시도'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => viewModel.loadUrl(EnvConfig.dashboardUrl),
+                  icon: const Icon(Icons.home),
+                  label: const Text('홈으로'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -159,20 +194,45 @@ class DashboardScreen extends BasePage {
             logger.d('[웹뷰 콘솔] ${consoleMessage.messageLevel}: ${consoleMessage.message}');
           },
           onLoadError: (controller, url, code, message) {
-            logger.e('로딩 오류 - 코드: $code, 메시지: $message');
+            logger.e('로딩 오류 - URL: $url, 코드: $code, 메시지: $message');
+            viewModel.setError('페이지 로드 실패\n\nURL: $url\n오류 코드: $code\n$message');
           },
           onLoadHttpError: (controller, url, statusCode, description) {
             logger.w('HTTP 오류 - $statusCode: $description');
+            if (statusCode >= 400) {
+              viewModel.setError('HTTP 오류 $statusCode\n\nURL: $url\n$description');
+            }
+          },
+          onReceivedError: (controller, request, error) {
+            logger.e('연결 오류 - ${error.type}: ${error.description}');
+            viewModel.setError('연결 오류\n\nURL: ${request.url}\n${error.type}: ${error.description}');
           },
           onRenderProcessGone: (controller, detail) {
             viewModel.onRenderProcessGone(detail.didCrash ?? false);
           },
         ),
+        // 로딩 중 오버레이
         if (state.isLoading)
-          LinearProgressIndicator(
-            value: state.progress,
-            backgroundColor: Colors.grey.shade200,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+          Container(
+            color: Colors.white,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    '로딩 중... ${(state.progress * 100).toInt()}%',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    EnvConfig.dashboardUrl,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
           ),
       ],
     );

@@ -68,6 +68,10 @@ dependencies:
   # Environment
   envied: ^1.1.1
 
+  # Auto Update
+  desktop_updater: ^1.4.0
+  package_info_plus: ^8.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -83,6 +87,7 @@ dev_dependencies:
   json_serializable: ^6.11.2
   freezed: ^3.0.0
   envied_generator: ^1.1.1
+  msix: ^3.16.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -123,3 +128,5 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Inno Setup installer - see installer/iScanKeeper.iss
