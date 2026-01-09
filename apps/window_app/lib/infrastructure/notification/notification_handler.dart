@@ -22,7 +22,7 @@ class NotificationHandler {
       return;
     }
 
-    final action = settings.getActionForLevel(entity.logLevel);
+    final action = settings.getActionForLevel(entity.logLevel, environment: entity.environment);
 
     switch (action) {
       case NotificationAction.none:

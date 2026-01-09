@@ -67,7 +67,7 @@ class EventResponseService extends _$EventResponseService {
         final otherNeedsAlwaysOnTop = entities.any((e) {
           if (e.id == entity.id) return false;
           if (!e.isUnchecked) return false;
-          final action = settings.getActionForLevel(e.logLevel);
+          final action = settings.getActionForLevel(e.logLevel, environment: e.environment);
           return action == NotificationAction.alwaysOnTop;
         });
 

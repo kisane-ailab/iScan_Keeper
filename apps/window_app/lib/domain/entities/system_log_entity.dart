@@ -1,3 +1,4 @@
+import 'package:window_app/data/models/enums/environment.dart';
 import 'package:window_app/data/models/enums/log_category.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
@@ -14,6 +15,7 @@ class SystemLogEntity {
   final LogCategory category;
   final String? code;
   final LogLevel logLevel;
+  final Environment environment;
   final Map<String, dynamic> payload;
   final ResponseStatus responseStatus;
   final DateTime _createdAtUtc;
@@ -29,6 +31,7 @@ class SystemLogEntity {
     required this.category,
     this.code,
     required this.logLevel,
+    required this.environment,
     required this.payload,
     required this.responseStatus,
     required DateTime createdAt,
@@ -48,6 +51,7 @@ class SystemLogEntity {
       category: model.category,
       code: model.code,
       logLevel: model.logLevel,
+      environment: model.environment,
       payload: model.payload,
       responseStatus: model.responseStatus,
       createdAt: model.createdAt,
@@ -84,6 +88,28 @@ class SystemLogEntity {
     return '${_formatDateTime(time)} 시작';
   }
 
+  /// 대응 경과 시간 (Duration)
+  Duration? get responseElapsedDuration {
+    final time = responseStartedAt;
+    if (time == null) return null;
+    return DateTime.now().difference(time);
+  }
+
+  /// 대응 경과 시간 포맷 (HH:mm:ss 또는 mm:ss)
+  String? get formattedElapsedTime {
+    final duration = responseElapsedDuration;
+    if (duration == null) return null;
+
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   String _formatDateTime(DateTime dt) {
     final month = dt.month.toString().padLeft(2, '0');
     final day = dt.day.toString().padLeft(2, '0');
@@ -99,6 +125,12 @@ class SystemLogEntity {
 
   /// 이벤트인지
   bool get isEvent => category.isEvent;
+
+  /// 개발 환경인지
+  bool get isDevelopment => environment.isDevelopment;
+
+  /// 운영 환경인지
+  bool get isProduction => environment.isProduction;
 
   /// 대응 중인지
   bool get isBeingResponded =>

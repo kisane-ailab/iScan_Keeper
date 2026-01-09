@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  desktop_updater
   flutter_inappwebview_windows
   local_notifier
   screen_retriever_windows

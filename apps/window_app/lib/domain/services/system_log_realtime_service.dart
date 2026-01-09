@@ -47,7 +47,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   /// 해당 로그가 항상위 모드를 필요로 하는지 확인 (설정 기반)
   bool _needsAlwaysOnTop(SystemLogEntity entity) {
     if (!entity.isUnchecked) return false;
-    final action = _settings.getActionForLevel(entity.logLevel);
+    final action = _settings.getActionForLevel(entity.logLevel, environment: entity.environment);
     return action == NotificationAction.alwaysOnTop;
   }
 
@@ -108,6 +108,14 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           table: 'system_logs',
           callback: (payload) {
             _handleUpdatedLog(payload.oldRecord, payload.newRecord);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'system_logs',
+          callback: (payload) {
+            _handleDeletedLog(payload.oldRecord);
           },
         )
         .subscribe();
@@ -203,6 +211,38 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       }
     } catch (e, st) {
       _logger.e('시스템 로그 업데이트 파싱 오류', error: e, stackTrace: st);
+    }
+  }
+
+  void _handleDeletedLog(Map<String, dynamic> oldRecord) async {
+    _logger.i('=== DELETE 이벤트 수신 ===');
+    _logger.d('oldRecord: $oldRecord');
+
+    try {
+      final deletedId = oldRecord['id'] as String?;
+      if (deletedId == null) {
+        _logger.w('삭제된 로그 ID를 찾을 수 없음');
+        return;
+      }
+
+      // 삭제된 로그가 항상위 모드가 필요했는지 체크
+      final deletedEntity = state.firstWhere(
+        (log) => log.id == deletedId,
+        orElse: () => state.first,
+      );
+      final wasAlwaysOnTopNeeded = _needsAlwaysOnTop(deletedEntity);
+
+      // 목록에서 해당 로그 제거
+      final newState = state.where((log) => log.id != deletedId).toList();
+      _logger.i('DELETE 처리: $deletedId (이전: ${state.length}개 → 현재: ${newState.length}개)');
+      state = newState;
+
+      // 삭제된 로그가 항상위 모드가 필요했다면 재평가
+      if (wasAlwaysOnTopNeeded) {
+        await checkAndReleaseAlwaysOnTop();
+      }
+    } catch (e, st) {
+      _logger.e('시스템 로그 삭제 처리 오류', error: e, stackTrace: st);
     }
   }
 

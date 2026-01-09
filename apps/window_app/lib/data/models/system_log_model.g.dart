@@ -18,6 +18,9 @@ _SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
       logLevel:
           $enumDecodeNullable(_$LogLevelEnumMap, json['log_level']) ??
           LogLevel.info,
+      environment:
+          $enumDecodeNullable(_$EnvironmentEnumMap, json['environment']) ??
+          Environment.production,
       payload: json['payload'] as Map<String, dynamic>? ?? const {},
       responseStatus:
           $enumDecodeNullable(
@@ -43,6 +46,7 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'category': _$LogCategoryEnumMap[instance.category]!,
       'code': instance.code,
       'log_level': _$LogLevelEnumMap[instance.logLevel]!,
+      'environment': _$EnvironmentEnumMap[instance.environment]!,
       'payload': instance.payload,
       'response_status': _$ResponseStatusEnumMap[instance.responseStatus]!,
       'created_at': instance.createdAt.toIso8601String(),
@@ -62,6 +66,11 @@ const _$LogLevelEnumMap = {
   LogLevel.warning: 'warning',
   LogLevel.error: 'error',
   LogLevel.critical: 'critical',
+};
+
+const _$EnvironmentEnumMap = {
+  Environment.development: 'development',
+  Environment.production: 'production',
 };
 
 const _$ResponseStatusEnumMap = {

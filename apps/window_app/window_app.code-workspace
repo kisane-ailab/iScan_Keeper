@@ -5,6 +5,22 @@
 		}
 	],
 	"settings": {
-		"dart.flutterSdkPath": ".fvm/versions/stable"
+		"dart.flutterSdkPath": ".fvm/versions/stable",
+		"terminal.integrated.defaultProfile.windows": "Command Prompt"
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "skip permissions",
+				"type": "shell",
+				"command": "claude --dangerously-skip-permissions",
+				"problemMatcher": [],
+				"presentation": {
+					"reveal": "always",
+					"panel": "new"
+				}
+			}
+		]
 	}
 }
