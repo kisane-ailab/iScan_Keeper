@@ -558,22 +558,29 @@ class _CriticalAlertBanner extends HookWidget {
               ],
             ),
           ),
-          // 알림 목록 (스크롤 가능)
+          // 알림 목록 (스크롤 가능, 흰색 스크롤바)
           Flexible(
-            child: ListView.builder(
+            child: RawScrollbar(
+              thumbColor: CupertinoColors.white.withValues(alpha: 0.6),
+              radius: const Radius.circular(4),
+              thickness: 4,
+              thumbVisibility: true,
+              padding: const EdgeInsets.only(right: 4),
+              child: ListView.builder(
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                 itemCount: entities.length,
                 itemBuilder: (context, index) {
                   final entity = entities[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
+                  return SelectionArea(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
                       children: [
                         // 번호 뱃지
                         Container(
@@ -621,17 +628,27 @@ class _CriticalAlertBanner extends HookWidget {
                             ],
                           ),
                         ),
-                        // 발생 시간
-                        SizedBox(
-                          width: 70,
+                        // 경과 시간 타이머 (slide_countdown)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: CupertinoColors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
                           child: Text(
-                            entity.formattedCreatedAt,
-                            style: TextStyle(
-                              color: CupertinoColors.white.withValues(alpha: 0.8),
-                              fontSize: 11,
+                            entity.formattedCreatedElapsedTime,
+                            style: const TextStyle(
+                              color: CupertinoColors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
                             ),
                           ),
                         ),
+                        const SizedBox(width: 10),
                         // 대응 버튼
                         CupertinoButton(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -650,8 +667,10 @@ class _CriticalAlertBanner extends HookWidget {
                         ),
                       ],
                     ),
+                    ),
                   );
                 },
+              ),
             ),
           ),
         ],
@@ -708,37 +727,37 @@ class _LogCard extends HookConsumerWidget {
     final authState = ref.watch(authServiceProvider);
     final isMyResponse = entity.currentResponderId == authState.user?.id;
 
-    // 대응 중일 때만 1초마다 리빌드하여 경과시간 업데이트
+    // 1초마다 리빌드하여 경과시간 업데이트 (발생 후 경과시간 + 대응 경과시간)
     final tick = useState(0);
     useEffect(() {
-      if (!entity.isBeingResponded) return null;
       final timer = Timer.periodic(const Duration(seconds: 1), (_) {
         tick.value++;
       });
       return timer.cancel;
-    }, [entity.isBeingResponded]);
+    }, []);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground.resolveFrom(context),
-        borderRadius: BorderRadius.circular(14),
-        border: entity.needsNotification
-            ? Border.all(color: levelColor.withValues(alpha: 0.5), width: 1.5)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: entity.needsNotification
-                ? levelColor.withValues(alpha: 0.15)
-                : CupertinoColors.systemGrey.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
+    return SelectionArea(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          borderRadius: BorderRadius.circular(14),
+          border: entity.needsNotification
+              ? Border.all(color: levelColor.withValues(alpha: 0.5), width: 1.5)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: entity.needsNotification
+                  ? levelColor.withValues(alpha: 0.15)
+                  : CupertinoColors.systemGrey.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 헤더
@@ -819,12 +838,34 @@ class _LogCard extends HookConsumerWidget {
                     ],
                   ),
                 ),
-                Text(
-                  entity.formattedCreatedAt,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      entity.formattedCreatedAt,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemGrey5.resolveFrom(context),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        entity.formattedCreatedElapsedTime,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1044,6 +1085,7 @@ class _LogCard extends HookConsumerWidget {
               ),
             ],
           ],
+          ),
         ),
       ),
     );
