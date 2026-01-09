@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'alert_view_model.dart';
+part of 'health_check_view_model.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -12,20 +12,20 @@ part of 'alert_view_model.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$AlertState {
+mixin _$HealthCheckState {
 
  List<SystemLogEntity> get productionLogs; List<SystemLogEntity> get developmentLogs; int get productionAlertCount; int get developmentAlertCount;
-/// Create a copy of AlertState
+/// Create a copy of HealthCheckState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$AlertStateCopyWith<AlertState> get copyWith => _$AlertStateCopyWithImpl<AlertState>(this as AlertState, _$identity);
+$HealthCheckStateCopyWith<HealthCheckState> get copyWith => _$HealthCheckStateCopyWithImpl<HealthCheckState>(this as HealthCheckState, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AlertState&&const DeepCollectionEquality().equals(other.productionLogs, productionLogs)&&const DeepCollectionEquality().equals(other.developmentLogs, developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HealthCheckState&&const DeepCollectionEquality().equals(other.productionLogs, productionLogs)&&const DeepCollectionEquality().equals(other.developmentLogs, developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
 }
 
 
@@ -34,15 +34,15 @@ int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(
 
 @override
 String toString() {
-  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
+  return 'HealthCheckState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $AlertStateCopyWith<$Res>  {
-  factory $AlertStateCopyWith(AlertState value, $Res Function(AlertState) _then) = _$AlertStateCopyWithImpl;
+abstract mixin class $HealthCheckStateCopyWith<$Res>  {
+  factory $HealthCheckStateCopyWith(HealthCheckState value, $Res Function(HealthCheckState) _then) = _$HealthCheckStateCopyWithImpl;
 @useResult
 $Res call({
  List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount
@@ -53,14 +53,14 @@ $Res call({
 
 }
 /// @nodoc
-class _$AlertStateCopyWithImpl<$Res>
-    implements $AlertStateCopyWith<$Res> {
-  _$AlertStateCopyWithImpl(this._self, this._then);
+class _$HealthCheckStateCopyWithImpl<$Res>
+    implements $HealthCheckStateCopyWith<$Res> {
+  _$HealthCheckStateCopyWithImpl(this._self, this._then);
 
-  final AlertState _self;
-  final $Res Function(AlertState) _then;
+  final HealthCheckState _self;
+  final $Res Function(HealthCheckState) _then;
 
-/// Create a copy of AlertState
+/// Create a copy of HealthCheckState
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,}) {
   return _then(_self.copyWith(
@@ -75,8 +75,8 @@ as int,
 }
 
 
-/// Adds pattern-matching-related methods to [AlertState].
-extension AlertStatePatterns on AlertState {
+/// Adds pattern-matching-related methods to [HealthCheckState].
+extension HealthCheckStatePatterns on HealthCheckState {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -89,10 +89,10 @@ extension AlertStatePatterns on AlertState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AlertState value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HealthCheckState value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _AlertState() when $default != null:
+case _HealthCheckState() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -111,10 +111,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AlertState value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HealthCheckState value)  $default,){
 final _that = this;
 switch (_that) {
-case _AlertState():
+case _HealthCheckState():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -132,10 +132,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AlertState value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HealthCheckState value)?  $default,){
 final _that = this;
 switch (_that) {
-case _AlertState() when $default != null:
+case _HealthCheckState() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -155,7 +155,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _AlertState() when $default != null:
+case _HealthCheckState() when $default != null:
 return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
   return orElse();
 
@@ -176,7 +176,7 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)  $default,) {final _that = this;
 switch (_that) {
-case _AlertState():
+case _HealthCheckState():
 return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
   throw StateError('Unexpected subclass');
 
@@ -196,7 +196,7 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)?  $default,) {final _that = this;
 switch (_that) {
-case _AlertState() when $default != null:
+case _HealthCheckState() when $default != null:
 return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
   return null;
 
@@ -208,8 +208,8 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 /// @nodoc
 
 
-class _AlertState implements AlertState {
-  const _AlertState({final  List<SystemLogEntity> productionLogs = const [], final  List<SystemLogEntity> developmentLogs = const [], this.productionAlertCount = 0, this.developmentAlertCount = 0}): _productionLogs = productionLogs,_developmentLogs = developmentLogs;
+class _HealthCheckState implements HealthCheckState {
+  const _HealthCheckState({final  List<SystemLogEntity> productionLogs = const [], final  List<SystemLogEntity> developmentLogs = const [], this.productionAlertCount = 0, this.developmentAlertCount = 0}): _productionLogs = productionLogs,_developmentLogs = developmentLogs;
   
 
  final  List<SystemLogEntity> _productionLogs;
@@ -229,17 +229,17 @@ class _AlertState implements AlertState {
 @override@JsonKey() final  int productionAlertCount;
 @override@JsonKey() final  int developmentAlertCount;
 
-/// Create a copy of AlertState
+/// Create a copy of HealthCheckState
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$AlertStateCopyWith<_AlertState> get copyWith => __$AlertStateCopyWithImpl<_AlertState>(this, _$identity);
+_$HealthCheckStateCopyWith<_HealthCheckState> get copyWith => __$HealthCheckStateCopyWithImpl<_HealthCheckState>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AlertState&&const DeepCollectionEquality().equals(other._productionLogs, _productionLogs)&&const DeepCollectionEquality().equals(other._developmentLogs, _developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HealthCheckState&&const DeepCollectionEquality().equals(other._productionLogs, _productionLogs)&&const DeepCollectionEquality().equals(other._developmentLogs, _developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
 }
 
 
@@ -248,15 +248,15 @@ int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(
 
 @override
 String toString() {
-  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
+  return 'HealthCheckState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$AlertStateCopyWith<$Res> implements $AlertStateCopyWith<$Res> {
-  factory _$AlertStateCopyWith(_AlertState value, $Res Function(_AlertState) _then) = __$AlertStateCopyWithImpl;
+abstract mixin class _$HealthCheckStateCopyWith<$Res> implements $HealthCheckStateCopyWith<$Res> {
+  factory _$HealthCheckStateCopyWith(_HealthCheckState value, $Res Function(_HealthCheckState) _then) = __$HealthCheckStateCopyWithImpl;
 @override @useResult
 $Res call({
  List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount
@@ -267,17 +267,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$AlertStateCopyWithImpl<$Res>
-    implements _$AlertStateCopyWith<$Res> {
-  __$AlertStateCopyWithImpl(this._self, this._then);
+class __$HealthCheckStateCopyWithImpl<$Res>
+    implements _$HealthCheckStateCopyWith<$Res> {
+  __$HealthCheckStateCopyWithImpl(this._self, this._then);
 
-  final _AlertState _self;
-  final $Res Function(_AlertState) _then;
+  final _HealthCheckState _self;
+  final $Res Function(_HealthCheckState) _then;
 
-/// Create a copy of AlertState
+/// Create a copy of HealthCheckState
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,}) {
-  return _then(_AlertState(
+  return _then(_HealthCheckState(
 productionLogs: null == productionLogs ? _self._productionLogs : productionLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,developmentLogs: null == developmentLogs ? _self._developmentLogs : developmentLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,productionAlertCount: null == productionAlertCount ? _self.productionAlertCount : productionAlertCount // ignore: cast_nullable_to_non_nullable

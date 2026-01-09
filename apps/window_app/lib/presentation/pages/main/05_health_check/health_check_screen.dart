@@ -5,23 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
-import 'package:window_app/data/models/notification_settings.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
-import 'package:window_app/domain/services/notification_settings_service.dart';
-import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
-import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
+import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
 
-class AlertScreen extends HookConsumerWidget {
-  const AlertScreen({super.key});
+class HealthCheckScreen extends HookConsumerWidget {
+  const HealthCheckScreen({super.key});
 
-  static const String path = '/alert';
-  static const String name = 'alert';
+  static const String path = '/health-check';
+  static const String name = 'health-check';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(alertViewModelProvider);
+    final state = ref.watch(healthCheckViewModelProvider);
     final tabController = useTabController(initialLength: 2);
 
     return Scaffold(
@@ -31,12 +28,12 @@ class AlertScreen extends HookConsumerWidget {
         elevation: 0,
         title: Row(
           children: [
-            const Text('이벤트'),
+            const Text('헬스체크'),
             if (state.alertCount > 0) ...[
               const SizedBox(width: 10),
               _CupertinoBadge(
                 count: state.alertCount,
-                color: CupertinoColors.systemRed,
+                color: CupertinoColors.systemOrange,
               ),
             ],
           ],
@@ -113,16 +110,14 @@ class AlertScreen extends HookConsumerWidget {
         controller: tabController,
         children: [
           // 운영 탭
-          _AlertTabContent(
+          _HealthCheckTabContent(
             logs: state.productionLogs,
-            emptyMessage: '운영중 이벤트 대기 중...',
-            emptyIcon: CupertinoIcons.checkmark_shield,
+            emptyMessage: '운영중 헬스체크 대기 중...',
           ),
           // 개발중 탭
-          _AlertTabContent(
+          _HealthCheckTabContent(
             logs: state.developmentLogs,
-            emptyMessage: '개발중 이벤트 대기 중...',
-            emptyIcon: CupertinoIcons.hammer,
+            emptyMessage: '개발중 헬스체크 대기 중...',
           ),
         ],
       ),
@@ -166,99 +161,68 @@ class _CupertinoBadge extends StatelessWidget {
 }
 
 /// 탭 콘텐츠 (Production/Development 공용)
-class _AlertTabContent extends HookConsumerWidget {
-  const _AlertTabContent({
+class _HealthCheckTabContent extends HookConsumerWidget {
+  const _HealthCheckTabContent({
     required this.logs,
     required this.emptyMessage,
-    required this.emptyIcon,
   });
 
   final List<SystemLogEntity> logs;
   final String emptyMessage;
-  final IconData emptyIcon;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAlwaysOnTop = ref.watch(alwaysOnTopStateProvider);
-    final settings = ref.watch(notificationSettingsServiceProvider);
-
-    // 항상위 모드가 필요한 미대응 로그 찾기 (설정 기반 - 환경별)
-    final alwaysOnTopLogs = logs.where((entity) {
-      if (!entity.isUnchecked) return false;
-      final action = settings.getActionForLevel(
-        entity.logLevel,
-        environment: entity.environment,
-      );
-      return action == NotificationAction.alwaysOnTop;
-    }).toList();
-
-    return Column(
-      children: [
-        // 항상 위 모드 배너 (항상위 필요 로그가 있을 때)
-        if (isAlwaysOnTop && alwaysOnTopLogs.isNotEmpty)
-          _CriticalAlertBanner(
-            entities: alwaysOnTopLogs,
-            onRespond: (entity) => _showResponseDialog(context, ref, entity),
-          ),
-
-        // 메인 콘텐츠
-        Expanded(
-          child: logs.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: CupertinoColors.systemGrey5.resolveFrom(context),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          emptyIcon,
-                          size: 40,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        emptyMessage,
-                        style: TextStyle(
-                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '설정에서 알림 레벨별 동작을 변경할 수 있습니다',
-                        style: TextStyle(
-                          color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+    return logs.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey5.resolveFrom(context),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: logs.length,
-                  itemBuilder: (context, index) {
-                    final entity = logs[index];
-                    return _LogCard(
-                      entity: entity,
-                      onRespond: () =>
-                          _showResponseDialog(context, ref, entity),
-                      onAbandon: () => _abandonResponse(context, ref, entity),
-                      onComplete: () =>
-                          _showCompleteDialog(context, ref, entity),
-                    );
-                  },
+                  child: const Icon(
+                    CupertinoIcons.heart_circle,
+                    size: 40,
+                    color: CupertinoColors.systemGrey,
+                  ),
                 ),
-        ),
-      ],
-    );
+                const SizedBox(height: 20),
+                Text(
+                  emptyMessage,
+                  style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '기기에서 상태 점검 로그를 수신합니다',
+                  style: TextStyle(
+                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              final entity = logs[index];
+              return _HealthCheckCard(
+                entity: entity,
+                onRespond: () => _showResponseDialog(context, ref, entity),
+                onAbandon: () => _abandonResponse(context, ref, entity),
+                onComplete: () => _showCompleteDialog(context, ref, entity),
+              );
+            },
+          );
   }
 
   Future<void> _showResponseDialog(
@@ -278,7 +242,7 @@ class _AlertTabContent extends HookConsumerWidget {
               _InfoRow(label: '환경', value: entity.environment.label),
               const SizedBox(height: 12),
               const Text(
-                '이 알림에 대응을 시작하시겠습니까?\n대응을 시작하면 다른 담당자에게 알림이 가지 않습니다.',
+                '이 헬스체크 알림에 대응을 시작하시겠습니까?',
                 style: TextStyle(fontSize: 13),
                 textAlign: TextAlign.center,
               ),
@@ -321,9 +285,7 @@ class _AlertTabContent extends HookConsumerWidget {
         title: const Text('대응 포기'),
         content: const Padding(
           padding: EdgeInsets.only(top: 12),
-          child: Text(
-            '대응을 포기하시겠습니까?\n다른 담당자에게 다시 알림이 전송됩니다.',
-          ),
+          child: Text('대응을 포기하시겠습니까?'),
         ),
         actions: [
           CupertinoDialogAction(
@@ -468,201 +430,9 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// 긴급 알림 배너 (실시간 경과시간 표시, 스크롤 가능)
-class _CriticalAlertBanner extends HookWidget {
-  const _CriticalAlertBanner({
-    required this.entities,
-    required this.onRespond,
-  });
-
-  final List<SystemLogEntity> entities;
-  final void Function(SystemLogEntity) onRespond;
-
-  @override
-  Widget build(BuildContext context) {
-    // 1초마다 리빌드하여 경과시간 업데이트
-    final tick = useState(0);
-    useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        tick.value++;
-      });
-      return timer.cancel;
-    }, []);
-
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFDC143C),
-            const Color(0xFFB91C3C),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFDC143C).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 헤더 (고정)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.exclamationmark_triangle_fill,
-                    color: CupertinoColors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '긴급 알림 ${entities.length}건',
-                  style: const TextStyle(
-                    color: CupertinoColors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    '대응 필요',
-                    style: TextStyle(
-                      color: CupertinoColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // 알림 목록 (스크롤 가능)
-          Flexible(
-            child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                itemCount: entities.length,
-                itemBuilder: (context, index) {
-                  final entity = entities[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        // 번호 뱃지
-                        Container(
-                          width: 26,
-                          height: 26,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: CupertinoColors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        // 소스 & 코드
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '[${entity.source}]',
-                                style: const TextStyle(
-                                  color: CupertinoColors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (entity.code != null)
-                                Text(
-                                  entity.code!,
-                                  style: TextStyle(
-                                    color: CupertinoColors.white.withValues(alpha: 0.8),
-                                    fontSize: 11,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
-                          ),
-                        ),
-                        // 발생 시간
-                        SizedBox(
-                          width: 70,
-                          child: Text(
-                            entity.formattedCreatedAt,
-                            style: TextStyle(
-                              color: CupertinoColors.white.withValues(alpha: 0.8),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                        // 대응 버튼
-                        CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          color: CupertinoColors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          minSize: 0,
-                          onPressed: () => onRespond(entity),
-                          child: const Text(
-                            '대응',
-                            style: TextStyle(
-                              color: Color(0xFFDC143C),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 로그 카드 (실시간 경과시간 표시) - Cupertino 스타일
-class _LogCard extends HookConsumerWidget {
-  const _LogCard({
+/// 헬스체크 카드 (실시간 경과시간 표시) - Cupertino 스타일
+class _HealthCheckCard extends HookConsumerWidget {
+  const _HealthCheckCard({
     required this.entity,
     required this.onRespond,
     required this.onAbandon,
@@ -683,20 +453,7 @@ class _LogCard extends HookConsumerWidget {
       case LogLevel.warning:
         return const Color(0xFFFFCC00);
       default:
-        return CupertinoColors.systemBlue;
-    }
-  }
-
-  IconData _getLevelIcon(LogLevel level) {
-    switch (level) {
-      case LogLevel.critical:
-        return CupertinoIcons.exclamationmark_triangle_fill;
-      case LogLevel.error:
-        return CupertinoIcons.xmark_circle_fill;
-      case LogLevel.warning:
-        return CupertinoIcons.exclamationmark_circle_fill;
-      default:
-        return CupertinoIcons.info_circle_fill;
+        return CupertinoColors.systemGreen;
     }
   }
 
@@ -708,7 +465,7 @@ class _LogCard extends HookConsumerWidget {
     final authState = ref.watch(authServiceProvider);
     final isMyResponse = entity.currentResponderId == authState.user?.id;
 
-    // 대응 중일 때만 1초마다 리빌드하여 경과시간 업데이트
+    // 대응 중일 때만 1초마다 리빌드
     final tick = useState(0);
     useEffect(() {
       if (!entity.isBeingResponded) return null;
@@ -752,7 +509,7 @@ class _LogCard extends HookConsumerWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    _getLevelIcon(entity.logLevel),
+                    CupertinoIcons.heart_circle_fill,
                     color: levelColor,
                     size: 22,
                   ),
@@ -762,49 +519,13 @@ class _LogCard extends HookConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '[${entity.source}]',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: entity.isHealthCheck
-                                  ? CupertinoColors.systemGreen.withValues(alpha: 0.15)
-                                  : CupertinoColors.systemBlue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              entity.category.label,
-                              style: TextStyle(
-                                color: entity.isHealthCheck
-                                    ? CupertinoColors.systemGreen
-                                    : CupertinoColors.systemBlue,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (entity.code != null)
-                        Text(
-                          entity.code!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                          ),
+                      Text(
+                        '[${entity.source}]',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
                         ),
+                      ),
                       if (entity.description != null &&
                           entity.description!.isNotEmpty)
                         Text(
@@ -881,7 +602,7 @@ class _LogCard extends HookConsumerWidget {
                 if (entity.isBeingResponded &&
                     entity.currentResponderName != null) ...[
                   const SizedBox(width: 12),
-                  Icon(
+                  const Icon(
                     CupertinoIcons.person_fill,
                     size: 16,
                     color: CupertinoColors.systemBlue,
@@ -895,23 +616,6 @@ class _LogCard extends HookConsumerWidget {
                       color: CupertinoColors.systemBlue,
                     ),
                   ),
-                  // 시작 시간
-                  if (entity.formattedResponseStartedAt != null) ...[
-                    const SizedBox(width: 10),
-                    Icon(
-                      CupertinoIcons.clock,
-                      size: 14,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      entity.formattedResponseStartedAt!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                      ),
-                    ),
-                  ],
                   // 경과 시간 (실시간)
                   if (entity.formattedElapsedTime != null) ...[
                     const SizedBox(width: 10),
@@ -965,16 +669,16 @@ class _LogCard extends HookConsumerWidget {
                       borderRadius: BorderRadius.circular(10),
                       minSize: 0,
                       onPressed: onRespond,
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             CupertinoIcons.play_fill,
                             size: 14,
                             color: CupertinoColors.white,
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
+                          SizedBox(width: 6),
+                          Text(
                             '대응하기',
                             style: TextStyle(
                               fontSize: 13,

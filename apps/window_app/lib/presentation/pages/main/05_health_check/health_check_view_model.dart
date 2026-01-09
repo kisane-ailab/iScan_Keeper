@@ -3,42 +3,40 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart';
 
-part 'alert_view_model.freezed.dart';
-part 'alert_view_model.g.dart';
+part 'health_check_view_model.freezed.dart';
+part 'health_check_view_model.g.dart';
 
-/// Alert 화면 상태
+/// HealthCheck 화면 상태
 @freezed
-abstract class AlertState with _$AlertState {
-  const factory AlertState({
+abstract class HealthCheckState with _$HealthCheckState {
+  const factory HealthCheckState({
     @Default([]) List<SystemLogEntity> productionLogs,
     @Default([]) List<SystemLogEntity> developmentLogs,
     @Default(0) int productionAlertCount,
     @Default(0) int developmentAlertCount,
-  }) = _AlertState;
+  }) = _HealthCheckState;
 }
 
-extension AlertStateX on AlertState {
+extension HealthCheckStateX on HealthCheckState {
   /// 전체 알림 개수 (뱃지용)
   int get alertCount => productionAlertCount + developmentAlertCount;
 }
 
-/// Alert ViewModel (이벤트 전용)
+/// HealthCheck ViewModel
 @riverpod
-class AlertViewModel extends _$AlertViewModel {
-  SystemLogRealtimeService get _service =>
-      ref.read(systemLogRealtimeServiceProvider.notifier);
-
+class HealthCheckViewModel extends _$HealthCheckViewModel {
   @override
-  AlertState build() {
-    // 서비스의 로그 목록 구독 (이벤트만 필터링)
+  HealthCheckState build() {
+    // 서비스의 로그 목록 구독 (health_check만 필터링)
     final allLogs = ref.watch(systemLogRealtimeServiceProvider);
-    final eventLogs = allLogs.where((entity) => entity.isEvent).toList();
+    final healthCheckLogs =
+        allLogs.where((entity) => entity.isHealthCheck).toList();
 
     // Production/Development 분리
     final productionLogs =
-        eventLogs.where((entity) => entity.isProduction).toList();
+        healthCheckLogs.where((entity) => entity.isProduction).toList();
     final developmentLogs =
-        eventLogs.where((entity) => entity.isDevelopment).toList();
+        healthCheckLogs.where((entity) => entity.isDevelopment).toList();
 
     // 미확인 상태이고 알림이 필요한 로그 개수
     final productionAlertCount =
@@ -46,24 +44,11 @@ class AlertViewModel extends _$AlertViewModel {
     final developmentAlertCount =
         developmentLogs.where((entity) => entity.needsNotification).length;
 
-    return AlertState(
+    return HealthCheckState(
       productionLogs: productionLogs,
       developmentLogs: developmentLogs,
       productionAlertCount: productionAlertCount,
       developmentAlertCount: developmentAlertCount,
     );
-  }
-
-  /// 알림 스트림 (새 알림 발생 시)
-  Stream<SystemLogEntity> get alertStream => _service.alertStream;
-
-  /// 로그 모두 지우기
-  void clearLogs() {
-    _service.clearLogs();
-  }
-
-  /// 로그가 긴급 알림인지 확인
-  bool isAlert(SystemLogEntity entity) {
-    return entity.needsNotification;
   }
 }

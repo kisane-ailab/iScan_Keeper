@@ -7,6 +7,7 @@ import 'package:window_app/presentation/pages/main/01_alert/alert_screen.dart';
 import 'package:window_app/presentation/pages/main/02_dashboard/dashboard_screen.dart';
 import 'package:window_app/presentation/pages/main/03_profile/profile_screen.dart';
 import 'package:window_app/presentation/pages/main/04_settings/settings_screen.dart';
+import 'package:window_app/presentation/pages/main/05_health_check/health_check_screen.dart';
 import 'package:window_app/presentation/pages/splash/splash_screen.dart';
 import 'package:window_app/presentation/pages/splash/signup/signup_screen.dart';
 import 'package:window_app/presentation/pages/splash/verification/email_verification_screen.dart';
@@ -16,6 +17,7 @@ part 'app_router.g.dart';
 // 네비게이션 키
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorAlertKey = GlobalKey<NavigatorState>();
+final _shellNavigatorHealthCheckKey = GlobalKey<NavigatorState>();
 final _shellNavigatorDashboardKey = GlobalKey<NavigatorState>();
 final _shellNavigatorProfileKey = GlobalKey<NavigatorState>();
 final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>();
@@ -81,7 +83,7 @@ GoRouter appRouter(Ref ref) {
           return MainShell(navigationShell: navigationShell);
         },
         branches: [
-          // 알림 브랜치 (첫 번째)
+          // 이벤트 알림 브랜치 (첫 번째)
           StatefulShellBranch(
             navigatorKey: _shellNavigatorAlertKey,
             routes: [
@@ -92,7 +94,18 @@ GoRouter appRouter(Ref ref) {
               ),
             ],
           ),
-          // 대시보드 브랜치 (두 번째)
+          // 헬스체크 브랜치 (두 번째)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorHealthCheckKey,
+            routes: [
+              GoRoute(
+                path: HealthCheckScreen.path,
+                name: HealthCheckScreen.name,
+                builder: (context, state) => const HealthCheckScreen(),
+              ),
+            ],
+          ),
+          // 대시보드 브랜치 (세 번째)
           StatefulShellBranch(
             navigatorKey: _shellNavigatorDashboardKey,
             routes: [

@@ -8,15 +8,15 @@ part of 'alert_view_model.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Alert ViewModel
+/// Alert ViewModel (이벤트 전용)
 
 @ProviderFor(AlertViewModel)
 const alertViewModelProvider = AlertViewModelProvider._();
 
-/// Alert ViewModel
+/// Alert ViewModel (이벤트 전용)
 final class AlertViewModelProvider
     extends $NotifierProvider<AlertViewModel, AlertState> {
-  /// Alert ViewModel
+  /// Alert ViewModel (이벤트 전용)
   const AlertViewModelProvider._()
     : super(
         from: null,
@@ -44,9 +44,9 @@ final class AlertViewModelProvider
   }
 }
 
-String _$alertViewModelHash() => r'6cdf7dc65e8d83a5880fa3ca7da4e76f09e2ce48';
+String _$alertViewModelHash() => r'd72bfff2f4529322a593db4b4f261d4c8f0ab6d5';
 
-/// Alert ViewModel
+/// Alert ViewModel (이벤트 전용)
 
 abstract class _$AlertViewModel extends $Notifier<AlertState> {
   AlertState build();
