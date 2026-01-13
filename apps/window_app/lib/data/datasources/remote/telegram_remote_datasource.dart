@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:window_app/infrastructure/config/env_config.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/network/dio/dio_provider.dart';
 
@@ -11,7 +12,7 @@ part 'telegram_remote_datasource.g.dart';
 /// Telegram Remote DataSource
 abstract class TelegramRemoteDataSource {
   static const String baseUrl = 'https://api.telegram.org';
-  static const String token = '7522648066:AAGjwQBys6Arqv8_xB462tea2OvhQxla57M';
+  static String get token => EnvConfig.telegramBotToken;
 
   /// GET /bot{token}/getUpdates
   Future<dynamic> getUpdates(String token);
