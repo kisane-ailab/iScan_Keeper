@@ -21,6 +21,7 @@ import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dar
 import 'package:window_app/presentation/widgets/admin_label.dart';
 import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
+import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
 
 class AlertScreen extends HookConsumerWidget {
@@ -35,22 +36,24 @@ class AlertScreen extends HookConsumerWidget {
     final viewModel = ref.read(alertViewModelProvider.notifier);
     final tabController = useTabController(initialLength: 2);
 
+    // 읽음 상태 - 안읽은 개수 계산 (탭별 표시용)
+    final readState = ref.watch(readStatusServiceProvider);
+    final productionUnreadCount = state.productionLogs
+        .where((log) => !readState.readEventIds.contains(log.id))
+        .length;
+    final developmentUnreadCount = state.developmentLogs
+        .where((log) => !readState.readEventIds.contains(log.id))
+        .length;
+
     return Scaffold(
       backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
       appBar: AppBar(
         backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
         elevation: 0,
-        title: Row(
+        title: const Row(
           children: [
-            const Text('이벤트'),
-            const AdminLabel(),
-            if (state.alertCount > 0) ...[
-              const SizedBox(width: 10),
-              _CupertinoBadge(
-                count: state.alertCount,
-                color: CupertinoColors.systemRed,
-              ),
-            ],
+            Text('이벤트'),
+            AdminLabel(),
           ],
         ),
         bottom: PreferredSize(
@@ -88,10 +91,10 @@ class AlertScreen extends HookConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text('운영중'),
-                      if (state.productionAlertCount > 0) ...[
+                      if (productionUnreadCount > 0) ...[
                         const SizedBox(width: 6),
                         _CupertinoBadge(
-                          count: state.productionAlertCount,
+                          count: productionUnreadCount,
                           color: CupertinoColors.systemRed,
                           small: true,
                         ),
@@ -105,10 +108,10 @@ class AlertScreen extends HookConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text('개발중'),
-                      if (state.developmentAlertCount > 0) ...[
+                      if (developmentUnreadCount > 0) ...[
                         const SizedBox(width: 6),
                         _CupertinoBadge(
-                          count: state.developmentAlertCount,
+                          count: developmentUnreadCount,
                           color: CupertinoColors.systemOrange,
                           small: true,
                         ),
@@ -1458,6 +1461,19 @@ class _LogCard extends HookConsumerWidget {
     // 확장 상태
     final isExpanded = useState(false);
 
+    // 읽음 상태
+    final readStatusService = ref.read(readStatusServiceProvider.notifier);
+    final readState = ref.watch(readStatusServiceProvider);
+    final isRead = readState.readEventIds.contains(entity.id);
+
+    // 확장 시 읽음 처리
+    useEffect(() {
+      if (isExpanded.value && !isRead) {
+        readStatusService.markEventAsRead(entity.id);
+      }
+      return null;
+    }, [isExpanded.value]);
+
     // Mute 애니메이션 상태
     final isMuting = useState(false);
     final animationController = useAnimationController(
@@ -1511,7 +1527,9 @@ class _LogCard extends HookConsumerWidget {
             child: SelectionArea(
       child: GestureDetector(
         onTap: () => isExpanded.value = !isExpanded.value,
-        child: Container(
+        child: Opacity(
+          opacity: isRead ? 0.6 : 1.0,
+          child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground.resolveFrom(context),
@@ -2013,6 +2031,7 @@ class _LogCard extends HookConsumerWidget {
           ],
           ),
         ),
+      ),
       ),
       ),
       ),
