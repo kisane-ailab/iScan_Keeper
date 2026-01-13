@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/mute_rule_model.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/presentation/pages/main/06_muted/muted_view_model.dart';
 import 'package:window_app/presentation/widgets/admin_label.dart';
 
@@ -19,6 +20,7 @@ class MutedScreen extends HookConsumerWidget {
     final state = ref.watch(mutedViewModelProvider);
     final viewModel = ref.read(mutedViewModelProvider.notifier);
     final muteRules = ref.watch(muteRuleServiceProvider);
+    final allLogs = ref.watch(systemLogRealtimeServiceProvider);
     final tabController = useTabController(initialLength: 2);
 
     final hasLogs = state.logs.isNotEmpty;
@@ -129,6 +131,7 @@ class MutedScreen extends HookConsumerWidget {
           // 숨김 규칙 탭
           _MuteRulesTab(
             rules: muteRules,
+            allLogs: allLogs,
             onDelete: (id) async {
               await ref.read(muteRuleServiceProvider.notifier).removeRule(id);
               if (context.mounted) {
@@ -320,11 +323,20 @@ class _MutedLogsTab extends StatelessWidget {
 class _MuteRulesTab extends StatelessWidget {
   const _MuteRulesTab({
     required this.rules,
+    required this.allLogs,
     required this.onDelete,
   });
 
   final List<MuteRule> rules;
+  final List<SystemLogEntity> allLogs;
   final Function(String id) onDelete;
+
+  /// 규칙에 매칭되는 로그 목록 반환
+  List<SystemLogEntity> _getMatchingLogs(MuteRule rule) {
+    return allLogs.where((log) {
+      return rule.matches(logSource: log.source, logCode: log.code);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -373,10 +385,12 @@ class _MuteRulesTab extends StatelessWidget {
       itemCount: rules.length,
       itemBuilder: (context, index) {
         final rule = rules[index];
+        final matchingLogs = _getMatchingLogs(rule);
         return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 12),
           child: _MuteRuleCard(
             rule: rule,
+            matchingLogs: matchingLogs,
             onDelete: () => onDelete(rule.id),
           ),
         );
@@ -548,18 +562,42 @@ class _MutedLogCard extends StatelessWidget {
   }
 }
 
-/// 숨김 규칙 카드
-class _MuteRuleCard extends StatelessWidget {
+/// 숨김 규칙 카드 (확장 가능)
+class _MuteRuleCard extends StatefulWidget {
   const _MuteRuleCard({
     required this.rule,
+    required this.matchingLogs,
     required this.onDelete,
   });
 
   final MuteRule rule;
+  final List<SystemLogEntity> matchingLogs;
   final VoidCallback onDelete;
 
   @override
+  State<_MuteRuleCard> createState() => _MuteRuleCardState();
+}
+
+class _MuteRuleCardState extends State<_MuteRuleCard> {
+  bool _isExpanded = false;
+
+  Color _getLevelColor(SystemLogEntity log) {
+    switch (log.logLevel.name) {
+      case 'critical':
+        return const Color(0xFFDC143C);
+      case 'error':
+        return CupertinoColors.systemOrange;
+      case 'warning':
+        return const Color(0xFFFFCC00);
+      default:
+        return CupertinoColors.systemBlue;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final hasLogs = widget.matchingLogs.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
@@ -572,120 +610,259 @@ class _MuteRuleCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // 아이콘
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey5.resolveFrom(context),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                CupertinoIcons.bell_slash_fill,
-                color: CupertinoColors.systemGrey.resolveFrom(context),
-                size: 20,
+      child: Column(
+        children: [
+          // 헤더 (탭 가능)
+          GestureDetector(
+            onTap: hasLogs ? () => setState(() => _isExpanded = !_isExpanded) : null,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  // 아이콘
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey5.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.bell_slash_fill,
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // 규칙 정보
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.rule.source != null)
+                          Row(
+                            children: [
+                              Text(
+                                'Source: ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  widget.rule.source!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (widget.rule.code != null) ...[
+                          if (widget.rule.source != null) const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                'Code: ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  widget.rule.code!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (widget.rule.source == null && widget.rule.code == null)
+                          Text(
+                            '모든 알림',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                            ),
+                          ),
+                        // 매칭 개수
+                        const SizedBox(height: 4),
+                        Text(
+                          hasLogs ? '${widget.matchingLogs.length}개의 알림이 숨겨짐' : '숨겨진 알림 없음',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: hasLogs
+                                ? CupertinoColors.systemBlue.resolveFrom(context)
+                                : CupertinoColors.tertiaryLabel.resolveFrom(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 확장 아이콘
+                  if (hasLogs) ...[
+                    Icon(
+                      _isExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                      size: 16,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  // 삭제 버튼
+                  CupertinoButton(
+                    padding: const EdgeInsets.all(8),
+                    onPressed: widget.onDelete,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            CupertinoIcons.trash,
+                            color: CupertinoColors.systemRed.resolveFrom(context),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '삭제',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.systemRed.resolveFrom(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            // 규칙 정보
-            Expanded(
+          ),
+          // 확장 콘텐츠 (매칭된 로그 목록)
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(14),
+                  bottomRight: Radius.circular(14),
+                ),
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (rule.source != null)
-                    Row(
-                      children: [
-                        Text(
-                          'Source: ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                          ),
+                  Divider(
+                    height: 1,
+                    color: CupertinoColors.separator.resolveFrom(context),
+                  ),
+                  ...widget.matchingLogs.take(10).map((log) => _buildLogItem(context, log)),
+                  if (widget.matchingLogs.length > 10)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        '외 ${widget.matchingLogs.length - 10}개 더...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                         ),
-                        Expanded(
-                          child: Text(
-                            rule.source!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  if (rule.code != null) ...[
-                    if (rule.source != null) const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          'Code: ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            rule.code!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (rule.source == null && rule.code == null)
-                    Text(
-                      '모든 알림',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
                       ),
                     ),
                 ],
               ),
             ),
-            // 삭제 버튼
-            CupertinoButton(
-              padding: const EdgeInsets.all(8),
-              onPressed: onDelete,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemRed.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogItem(BuildContext context, SystemLogEntity log) {
+    final levelColor = _getLevelColor(log);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Row(
+        children: [
+          // 레벨 표시
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: levelColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          // 로그 정보
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(
-                      CupertinoIcons.trash,
-                      color: CupertinoColors.systemRed.resolveFrom(context),
-                      size: 16,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: levelColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        log.logLevel.label,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: levelColor,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '삭제',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.systemRed.resolveFrom(context),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '[${log.source}]',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-              ),
+                if (log.code != null)
+                  Text(
+                    log.code!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // 시간
+          Text(
+            log.formattedCreatedAt,
+            style: TextStyle(
+              fontSize: 10,
+              color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+            ),
+          ),
+        ],
       ),
     );
   }
