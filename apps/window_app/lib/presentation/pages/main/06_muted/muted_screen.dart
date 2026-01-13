@@ -22,177 +22,114 @@ class MutedScreen extends HookConsumerWidget {
 
     final hasLogs = state.logs.isNotEmpty;
     final hasRules = muteRules.isNotEmpty;
-    final isEmpty = !hasLogs && !hasRules && !state.isLoading;
 
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
-      child: CustomScrollView(
-        slivers: [
-          // 헤더
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('숨긴 알림'),
-            trailing: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => viewModel.loadMutedLogs(),
-              child: const Icon(CupertinoIcons.refresh),
-            ),
+    return Scaffold(
+      backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
+      appBar: AppBar(
+        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
+        elevation: 0,
+        title: const Text('숨긴 알림'),
+        actions: [
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            onPressed: () => viewModel.loadMutedLogs(),
+            child: const Icon(CupertinoIcons.refresh, size: 22),
           ),
-          // 로딩 상태
-          if (state.isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CupertinoActivityIndicator()),
-            )
-          // 에러 상태
-          else if (state.error != null)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.exclamationmark_triangle,
-                      size: 48,
-                      color: CupertinoColors.systemRed.resolveFrom(context),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.error!,
-                      style: TextStyle(
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    CupertinoButton(
-                      onPressed: () => viewModel.loadMutedLogs(),
-                      child: const Text('다시 시도'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          // 빈 상태
-          else if (isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.bell_slash,
-                      size: 64,
-                      color: CupertinoColors.systemGrey.resolveFrom(context),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '숨긴 알림이 없습니다',
-                      style: TextStyle(
-                        fontSize: 17,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '알림을 숨기면 여기에 표시됩니다',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          // 콘텐츠 (탭)
-          else ...[
-            // 탭바
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey5.resolveFrom(context),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: TabBar(
-                  controller: tabController,
-                  indicator: BoxDecoration(
-                    color: CupertinoColors.systemBackground.resolveFrom(context),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: CupertinoColors.systemGrey.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.all(4),
-                  dividerColor: Colors.transparent,
-                  labelColor: CupertinoColors.label.resolveFrom(context),
-                  unselectedLabelColor: CupertinoColors.secondaryLabel.resolveFrom(context),
-                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                  tabs: [
-                    Tab(
-                      height: 40,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('개별 알림'),
-                          if (hasLogs) ...[
-                            const SizedBox(width: 6),
-                            _Badge(count: state.logs.length),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Tab(
-                      height: 40,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('숨김 규칙'),
-                          if (hasRules) ...[
-                            const SizedBox(width: 6),
-                            _Badge(count: muteRules.length),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey5.resolveFrom(context),
+              borderRadius: BorderRadius.circular(10),
             ),
-            // 탭 콘텐츠
-            SliverFillRemaining(
-              child: TabBarView(
-                controller: tabController,
-                children: [
-                  // 개별 알림 탭
-                  _MutedLogsTab(
-                    logs: state.logs,
-                    onUnmute: (id) async {
-                      final success = await viewModel.unmuteLogs(id);
-                      if (success && context.mounted) {
-                        _showToast(context, '알림이 다시 표시됩니다');
-                      }
-                    },
-                  ),
-                  // 숨김 규칙 탭
-                  _MuteRulesTab(
-                    rules: muteRules,
-                    onDelete: (id) async {
-                      await ref.read(muteRuleServiceProvider.notifier).removeRule(id);
-                      if (context.mounted) {
-                        _showToast(context, '규칙이 삭제되었습니다');
-                      }
-                    },
+            child: TabBar(
+              controller: tabController,
+              indicator: BoxDecoration(
+                color: CupertinoColors.systemBackground.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: CupertinoColors.systemGrey.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.all(4),
+              dividerColor: Colors.transparent,
+              labelColor: CupertinoColors.label.resolveFrom(context),
+              unselectedLabelColor: CupertinoColors.secondaryLabel.resolveFrom(context),
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              tabs: [
+                Tab(
+                  height: 40,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('개별 알림'),
+                      if (hasLogs) ...[
+                        const SizedBox(width: 6),
+                        _CupertinoBadge(
+                          count: state.logs.length,
+                          color: CupertinoColors.systemGrey,
+                          small: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Tab(
+                  height: 40,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('숨김 규칙'),
+                      if (hasRules) ...[
+                        const SizedBox(width: 6),
+                        _CupertinoBadge(
+                          count: muteRules.length,
+                          color: CupertinoColors.systemGrey,
+                          small: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+      body: TabBarView(
+        controller: tabController,
+        children: [
+          // 개별 알림 탭
+          _MutedLogsTab(
+            logs: state.logs,
+            isLoading: state.isLoading,
+            error: state.error,
+            onUnmute: (id) async {
+              final success = await viewModel.unmuteLogs(id);
+              if (success && context.mounted) {
+                _showToast(context, '알림이 다시 표시됩니다');
+              }
+            },
+            onRefresh: () => viewModel.loadMutedLogs(),
+          ),
+          // 숨김 규칙 탭
+          _MuteRulesTab(
+            rules: muteRules,
+            onDelete: (id) async {
+              await ref.read(muteRuleServiceProvider.notifier).removeRule(id);
+              if (context.mounted) {
+                _showToast(context, '규칙이 삭제되었습니다');
+              }
+            },
+          ),
         ],
       ),
     );
@@ -211,7 +148,7 @@ class MutedScreen extends HookConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: CupertinoColors.black.withOpacity(0.8),
+                color: CupertinoColors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -231,25 +168,34 @@ class MutedScreen extends HookConsumerWidget {
   }
 }
 
-/// 뱃지 위젯
-class _Badge extends StatelessWidget {
-  const _Badge({required this.count});
+/// Cupertino 스타일 뱃지
+class _CupertinoBadge extends StatelessWidget {
+  const _CupertinoBadge({
+    required this.count,
+    required this.color,
+    this.small = false,
+  });
 
   final int count;
+  final Color color;
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: small ? 5 : 8,
+        vertical: small ? 1 : 2,
+      ),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey,
-        borderRadius: BorderRadius.circular(10),
+        color: color,
+        borderRadius: BorderRadius.circular(small ? 8 : 10),
       ),
       child: Text(
         '$count',
-        style: const TextStyle(
+        style: TextStyle(
           color: CupertinoColors.white,
-          fontSize: 11,
+          fontSize: small ? 10 : 12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -261,30 +207,85 @@ class _Badge extends StatelessWidget {
 class _MutedLogsTab extends StatelessWidget {
   const _MutedLogsTab({
     required this.logs,
+    required this.isLoading,
+    required this.error,
     required this.onUnmute,
+    required this.onRefresh,
   });
 
   final List<SystemLogEntity> logs;
+  final bool isLoading;
+  final String? error;
   final Function(String id) onUnmute;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    if (logs.isEmpty) {
+    if (isLoading) {
+      return const Center(child: CupertinoActivityIndicator());
+    }
+
+    if (error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              CupertinoIcons.bell_slash,
+              CupertinoIcons.exclamationmark_triangle,
               size: 48,
-              color: CupertinoColors.systemGrey.resolveFrom(context),
+              color: CupertinoColors.systemRed.resolveFrom(context),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Text(
+              error!,
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            CupertinoButton(
+              onPressed: onRefresh,
+              child: const Text('다시 시도'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (logs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey5.resolveFrom(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                CupertinoIcons.bell_slash,
+                size: 40,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               '개별 숨긴 알림이 없습니다',
               style: TextStyle(
-                fontSize: 15,
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '알림 메뉴에서 "이 알림 숨기기"로 숨길 수 있습니다',
+              style: TextStyle(
+                color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                fontSize: 13,
               ),
             ),
           ],
@@ -326,25 +327,34 @@ class _MuteRulesTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              CupertinoIcons.slider_horizontal_3,
-              size: 48,
-              color: CupertinoColors.systemGrey.resolveFrom(context),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey5.resolveFrom(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                CupertinoIcons.slider_horizontal_3,
+                size: 40,
+                color: CupertinoColors.systemGrey,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             Text(
               '숨김 규칙이 없습니다',
               style: TextStyle(
-                fontSize: 15,
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               '알림 메뉴에서 "이 종류의 알림 숨기기"로 추가',
               style: TextStyle(
-                fontSize: 13,
                 color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                fontSize: 13,
               ),
             ),
           ],
@@ -384,14 +394,17 @@ class _MutedLogCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             // 로그 레벨 아이콘
@@ -399,8 +412,8 @@ class _MutedLogCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _getLevelColor(context).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: _getLevelColor(context).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 _getLevelIcon(),
@@ -419,13 +432,13 @@ class _MutedLogCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _getLevelColor(context).withOpacity(0.1),
+                          color: _getLevelColor(context).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           log.logLevel.label,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: _getLevelColor(context),
                           ),
@@ -434,7 +447,7 @@ class _MutedLogCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          log.source,
+                          '[${log.source}]',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -444,20 +457,21 @@ class _MutedLogCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  if (log.code != null)
+                  if (log.code != null) ...[
+                    const SizedBox(height: 2),
                     Text(
                       log.code!,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: CupertinoColors.secondaryLabel.resolveFrom(context),
                       ),
                     ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     log.formattedCreatedAt,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                     ),
                   ),
@@ -468,10 +482,31 @@ class _MutedLogCard extends StatelessWidget {
             CupertinoButton(
               padding: const EdgeInsets.all(8),
               onPressed: onUnmute,
-              child: Icon(
-                CupertinoIcons.eye,
-                color: CupertinoColors.systemBlue.resolveFrom(context),
-                size: 22,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.eye,
+                      color: CupertinoColors.systemBlue.resolveFrom(context),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '해제',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.systemBlue.resolveFrom(context),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -483,11 +518,11 @@ class _MutedLogCard extends StatelessWidget {
   IconData _getLevelIcon() {
     switch (log.logLevel.name) {
       case 'critical':
-        return CupertinoIcons.exclamationmark_octagon_fill;
+        return CupertinoIcons.exclamationmark_triangle_fill;
       case 'error':
         return CupertinoIcons.xmark_circle_fill;
       case 'warning':
-        return CupertinoIcons.exclamationmark_triangle_fill;
+        return CupertinoIcons.exclamationmark_circle_fill;
       default:
         return CupertinoIcons.info_circle_fill;
     }
@@ -496,13 +531,13 @@ class _MutedLogCard extends StatelessWidget {
   Color _getLevelColor(BuildContext context) {
     switch (log.logLevel.name) {
       case 'critical':
-        return CupertinoColors.systemPurple.resolveFrom(context);
+        return const Color(0xFFDC143C);
       case 'error':
-        return CupertinoColors.systemRed.resolveFrom(context);
+        return CupertinoColors.systemOrange;
       case 'warning':
-        return CupertinoColors.systemOrange.resolveFrom(context);
+        return const Color(0xFFFFCC00);
       default:
-        return CupertinoColors.systemBlue.resolveFrom(context);
+        return CupertinoColors.systemBlue;
     }
   }
 }
@@ -522,14 +557,17 @@ class _MuteRuleCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             // 아이콘
@@ -538,7 +576,7 @@ class _MuteRuleCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: CupertinoColors.systemGrey5.resolveFrom(context),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 CupertinoIcons.bell_slash_fill,
@@ -552,7 +590,7 @@ class _MuteRuleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (rule.source != null) ...[
+                  if (rule.source != null)
                     Row(
                       children: [
                         Text(
@@ -574,9 +612,8 @@ class _MuteRuleCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                  ],
                   if (rule.code != null) ...[
+                    if (rule.source != null) const SizedBox(height: 2),
                     Row(
                       children: [
                         Text(
@@ -614,10 +651,31 @@ class _MuteRuleCard extends StatelessWidget {
             CupertinoButton(
               padding: const EdgeInsets.all(8),
               onPressed: onDelete,
-              child: Icon(
-                CupertinoIcons.trash,
-                color: CupertinoColors.systemRed.resolveFrom(context),
-                size: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemRed.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.trash,
+                      color: CupertinoColors.systemRed.resolveFrom(context),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '삭제',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.systemRed.resolveFrom(context),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
