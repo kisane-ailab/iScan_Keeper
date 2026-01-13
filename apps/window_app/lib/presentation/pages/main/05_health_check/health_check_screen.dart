@@ -13,8 +13,11 @@ import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
+import 'package:window_app/domain/services/mute_rule_service.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
 import 'package:window_app/presentation/widgets/admin_label.dart';
+import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
 
 class HealthCheckScreen extends HookConsumerWidget {
   const HealthCheckScreen({super.key});
@@ -686,6 +689,7 @@ class _HealthCheckTabContent extends HookConsumerWidget {
                 onAssign: isAdmin
                     ? () => _showAssignDialog(context, ref, entity)
                     : null,
+                isAdmin: isAdmin,
               );
             },
           ),
@@ -945,6 +949,7 @@ class _HealthCheckCard extends HookConsumerWidget {
     required this.onAbandon,
     required this.onComplete,
     this.onAssign,
+    this.isAdmin = false,
   });
 
   final SystemLogEntity entity;
@@ -952,6 +957,7 @@ class _HealthCheckCard extends HookConsumerWidget {
   final VoidCallback onAbandon;
   final VoidCallback onComplete;
   final VoidCallback? onAssign;
+  final bool isAdmin;
 
   Color _getLevelColor(LogLevel level) {
     switch (level) {
@@ -986,7 +992,57 @@ class _HealthCheckCard extends HookConsumerWidget {
     // 확장 상태
     final isExpanded = useState(false);
 
-    return GestureDetector(
+    // Mute 애니메이션 상태
+    final isMuting = useState(false);
+    final animationController = useAnimationController(
+      duration: const Duration(milliseconds: 300),
+    );
+    final fadeAnimation = useAnimation(
+      CurvedAnimation(parent: animationController, curve: Curves.easeOut),
+    );
+    final scaleAnimation = useAnimation(
+      Tween<double>(begin: 1.0, end: 0.95).animate(
+        CurvedAnimation(parent: animationController, curve: Curves.easeOut),
+      ),
+    );
+
+    // Mute 완료 상태 (높이 축소용)
+    final isMuteComplete = useState(false);
+
+    // Mute 실행 함수
+    Future<void> performMute({required bool isSingle, MuteRuleDialogResult? ruleResult}) async {
+      isMuting.value = true;
+      await animationController.forward();
+
+      // 애니메이션 완료 후 높이 축소
+      isMuteComplete.value = true;
+
+      // 약간의 딜레이 후 실제 mute 처리
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      if (isSingle) {
+        await ref.read(systemLogRealtimeServiceProvider.notifier)
+            .setLogMuted(entity.id, true);
+      } else if (ruleResult != null) {
+        await ref.read(muteRuleServiceProvider.notifier).addRule(
+          source: ruleResult.effectiveSource,
+          code: ruleResult.effectiveCode,
+        );
+      }
+    }
+
+    return ClipRect(
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        heightFactor: isMuteComplete.value ? 0.0 : 1.0,
+        child: AnimatedOpacity(
+          opacity: isMuting.value ? (1.0 - fadeAnimation) : 1.0,
+          duration: const Duration(milliseconds: 50),
+          child: Transform.scale(
+            scale: isMuting.value ? scaleAnimation : 1.0,
+            child: GestureDetector(
       onTap: () => isExpanded.value = !isExpanded.value,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1082,21 +1138,36 @@ class _HealthCheckCard extends HookConsumerWidget {
                     ),
                   ],
                 ),
-                // 더보기 메뉴 (할당 등)
-                if (onAssign != null && !entity.isCompleted) ...[
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'assign') {
-                        onAssign?.call();
+                // 더보기 메뉴 (할당, mute 등)
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'assign') {
+                      onAssign?.call();
+                    } else if (value == 'mute_single') {
+                      // 개별 mute (애니메이션 적용)
+                      await performMute(isSingle: true);
+                    } else if (value == 'mute_rule') {
+                      // 규칙 기반 mute
+                      final result = await MuteRuleDialog.show(
+                        context: context,
+                        source: entity.source,
+                        code: entity.code,
+                      );
+                      if (result != null) {
+                        // 애니메이션 적용 후 mute
+                        await performMute(isSingle: false, ruleResult: result);
                       }
-                    },
-                    offset: const Offset(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    color: CupertinoColors.systemBackground.resolveFrom(context),
-                    elevation: 4,
-                    padding: EdgeInsets.zero,
-                    itemBuilder: (context) => [
+                    }
+                  },
+                  offset: const Offset(0, 32),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  color: CupertinoColors.systemBackground.resolveFrom(context),
+                  elevation: 4,
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context) => [
+                    // 할당하기 (관리자 전용, 완료되지 않은 경우)
+                    if (onAssign != null && !entity.isCompleted)
                       PopupMenuItem<String>(
                         value: 'assign',
                         height: 40,
@@ -1112,21 +1183,57 @@ class _HealthCheckCard extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6.resolveFrom(context),
-                        borderRadius: BorderRadius.circular(6),
+                    // 구분선 (관리자 전용)
+                    if (isAdmin && (onAssign != null && !entity.isCompleted))
+                      const PopupMenuDivider(height: 1),
+                    // 이 알림 숨기기 (관리자 전용)
+                    if (isAdmin)
+                      PopupMenuItem<String>(
+                        value: 'mute_single',
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.bell_slash,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('이 알림 숨기기', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
                       ),
-                      child: Icon(
-                        CupertinoIcons.ellipsis,
-                        size: 16,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    // 이 종류의 알림 숨기기 (관리자 전용)
+                    if (isAdmin)
+                      PopupMenuItem<String>(
+                        value: 'mute_rule',
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.bell_slash_fill,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('이 종류의 알림 숨기기...', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
                       ),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.ellipsis,
+                      size: 16,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
 
@@ -1386,6 +1493,10 @@ class _HealthCheckCard extends HookConsumerWidget {
           ],
         ),
       ),
+      ),
+      ),
+      ),
+        ),
       ),
     );
   }

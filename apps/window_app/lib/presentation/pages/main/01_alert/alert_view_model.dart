@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
+import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart';
 
 part 'alert_view_model.freezed.dart';
@@ -62,7 +63,17 @@ class AlertViewModel extends _$AlertViewModel {
   AlertState build() {
     // 서비스의 로그 목록 구독 (이벤트만 필터링)
     final allLogs = ref.watch(systemLogRealtimeServiceProvider);
-    final eventLogs = allLogs.where((entity) => entity.isEvent).toList();
+    final muteRules = ref.watch(muteRuleServiceProvider);
+
+    // 이벤트만 필터링 + mute rule에 매칭되는 로그 제외
+    final eventLogs = allLogs.where((entity) {
+      if (!entity.isEvent) return false;
+      // mute rule에 매칭되면 제외
+      final isMutedByRule = muteRules.any(
+        (rule) => rule.matches(logSource: entity.source, logCode: entity.code),
+      );
+      return !isMutedByRule;
+    }).toList();
 
     // 사용 가능한 source 목록 추출
     final sources = eventLogs.map((e) => e.source).toSet().toList()..sort();

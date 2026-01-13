@@ -288,6 +288,22 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     state = [];
   }
 
+  /// 개별 로그 mute 설정
+  Future<void> setLogMuted(String id, bool muted) async {
+    try {
+      final repository = ref.read(systemLogRepositoryProvider);
+      await repository.setLogMuted(id, muted);
+
+      // 로컬 상태에서 해당 로그 제거 (muted 처리되었으므로)
+      if (muted) {
+        state = state.where((log) => log.id != id).toList();
+        _logger.i('로그 mute 완료: $id');
+      }
+    } catch (e) {
+      _logger.e('로그 mute 실패: $id', error: e);
+    }
+  }
+
   /// 항상위 모드가 필요한 미대응 로그가 있는지 확인
   bool get hasAlwaysOnTopNeeded {
     return state.any((entity) => _needsAlwaysOnTop(entity));

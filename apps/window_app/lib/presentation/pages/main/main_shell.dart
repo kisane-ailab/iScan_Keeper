@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:window_app/data/models/user_model.dart';
+import 'package:window_app/domain/services/auth_service.dart';
+import 'package:window_app/domain/services/event_response_service.dart';
 import 'package:window_app/presentation/layout/base_shell.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
@@ -128,6 +131,14 @@ class MainShell extends BaseShell {
     final alertState = ref.watch(alertViewModelProvider);
     final healthCheckState = ref.watch(healthCheckViewModelProvider);
 
+    // 관리자 여부 확인
+    final currentUserAsync = ref.watch(currentUserDetailProvider);
+    final isAdmin = currentUserAsync.when(
+      data: (user) => user?.isAdmin ?? false,
+      loading: () => false,
+      error: (e, s) => false,
+    );
+
     return [
       _CupertinoNavDestination(
         icon: CupertinoIcons.bell,
@@ -158,6 +169,13 @@ class MainShell extends BaseShell {
         selectedIcon: CupertinoIcons.gear_alt_fill,
         label: '설정',
       ),
+      // 숨긴 알림 (관리자 전용)
+      if (isAdmin)
+        const _CupertinoNavDestination(
+          icon: CupertinoIcons.bell_slash,
+          selectedIcon: CupertinoIcons.bell_slash_fill,
+          label: '숨긴 알림',
+        ),
     ];
   }
 }

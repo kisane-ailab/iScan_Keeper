@@ -28,6 +28,7 @@ export interface SystemLog {
   organization_id: string | null;
   assigned_by_id: string | null;
   assigned_by_name: string | null;
+  is_muted: boolean | null;
   created_at: string;
 }
 
@@ -57,6 +58,22 @@ export interface CreateSystemLogResponse {
     attachments: Record<string, unknown> | null;
     response_status: ResponseStatus;
     created_at: string;
+  };
+}
+
+// 시스템 로그 mute 요청
+export interface SetLogMutedRequest {
+  muted: boolean;
+}
+
+// 시스템 로그 mute 응답
+export interface SetLogMutedResponse {
+  success: boolean;
+  data: {
+    id: string;
+    source: string;
+    code: string;
+    is_muted: boolean;
   };
 }
 

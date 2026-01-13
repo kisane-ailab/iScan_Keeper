@@ -28,6 +28,7 @@ abstract class SystemLogModel with _$SystemLogModel {
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'assigned_by_id') String? assignedById,
     @JsonKey(name: 'assigned_by_name') String? assignedByName,
+    @JsonKey(name: 'is_muted') bool? isMuted,
   }) = _SystemLogModel;
 
   factory SystemLogModel.fromJson(Map<String, dynamic> json) =>

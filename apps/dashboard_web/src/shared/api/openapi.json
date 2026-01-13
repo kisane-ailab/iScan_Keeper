@@ -93,6 +93,78 @@
         }
       }
     },
+    "/system-logs/{id}/mute": {
+      "patch": {
+        "tags": ["system-logs"],
+        "summary": "시스템 로그 알림 무시 설정",
+        "description": "특정 시스템 로그의 알림 무시 상태를 설정/해제합니다. muted=true로 설정하면 해당 로그는 알림 목록에서 숨겨집니다.",
+        "operationId": "setLogMuted",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "시스템 로그 ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLogMutedRequest"
+              },
+              "example": {
+                "muted": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "설정 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetLogMutedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (muted 필드 누락 또는 유효하지 않은 값)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "시스템 로그를 찾을 수 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/responses/claim": {
       "post": {
         "tags": ["responses"],
@@ -424,6 +496,34 @@
               "total": { "type": "integer" },
               "available": { "type": "integer" },
               "busy": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "SetLogMutedRequest": {
+        "type": "object",
+        "required": ["muted"],
+        "properties": {
+          "muted": {
+            "type": "boolean",
+            "description": "알림 무시 여부 (true: 무시, false: 해제)"
+          }
+        }
+      },
+      "SetLogMutedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "source": { "type": "string" },
+              "code": { "type": "string" },
+              "is_muted": { "type": "boolean" }
             }
           }
         }

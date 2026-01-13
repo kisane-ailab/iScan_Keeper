@@ -25,6 +25,7 @@ class SystemLogEntity {
   final String? organizationId;
   final String? assignedById;
   final String? assignedByName;
+  final bool? isMuted;
 
   SystemLogEntity({
     required this.id,
@@ -43,6 +44,7 @@ class SystemLogEntity {
     this.organizationId,
     this.assignedById,
     this.assignedByName,
+    this.isMuted,
   })  : _createdAtUtc = createdAt,
         _responseStartedAtUtc = responseStartedAt;
 
@@ -65,6 +67,7 @@ class SystemLogEntity {
       organizationId: model.organizationId,
       assignedById: model.assignedById,
       assignedByName: model.assignedByName,
+      isMuted: model.isMuted,
     );
   }
 
@@ -186,6 +189,9 @@ class SystemLogEntity {
 
   /// 자원한 건인지 (본인이 대응 시작)
   bool get isVolunteered => isBeingResponded && assignedById == null;
+
+  /// 알림 무시 상태인지
+  bool get isMutedLog => isMuted == true;
 
   /// 이슈 정보 요약 문자열 (알림용)
   String get issueInfo {

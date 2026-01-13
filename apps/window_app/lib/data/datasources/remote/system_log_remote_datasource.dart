@@ -32,6 +32,12 @@ abstract class SystemLogRemoteDatasource {
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   });
+
+  /// 시스템 로그 알림 무시 설정/해제
+  Future<Map<String, dynamic>> setLogMuted(String id, bool muted);
+
+  /// 숨긴(muted) 로그 목록 조회
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100});
 }
 
 /// SystemLog Remote DataSource 구현체
@@ -50,6 +56,9 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
     final offset = (page - 1) * limit;
 
     var query = _client.from('system_logs').select();
+
+    // muted 로그 제외 (is_muted가 null이거나 false인 것만)
+    query = query.or('is_muted.is.null,is_muted.eq.false');
 
     if (responseStatus != null) {
       query = query.eq('response_status', responseStatus);
@@ -81,6 +90,7 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
         .from('system_logs')
         .select()
         .eq('response_status', 'unresponded')
+        .or('is_muted.is.null,is_muted.eq.false')
         .order('created_at', ascending: false)
         .limit(limit);
 
@@ -96,6 +106,7 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
         .select()
         .inFilter('log_level', ['warning', 'error', 'critical'])
         .inFilter('response_status', ['unresponded', 'in_progress'])
+        .or('is_muted.is.null,is_muted.eq.false')
         .order('created_at', ascending: false)
         .limit(limit);
 
@@ -124,6 +135,36 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
 
     logger.i('시스템 로그 생성 완료: ${result['id']}');
     return result;
+  }
+
+  @override
+  Future<Map<String, dynamic>> setLogMuted(String id, bool muted) async {
+    logger.d('시스템 로그 mute 설정: id=$id, muted=$muted');
+
+    final result = await _client
+        .from('system_logs')
+        .update({'is_muted': muted ? true : null})
+        .eq('id', id)
+        .select('id, source, code, is_muted')
+        .single();
+
+    logger.i('시스템 로그 mute 설정 완료: ${result['id']}, is_muted=${result['is_muted']}');
+    return result;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100}) async {
+    logger.d('숨긴 로그 목록 조회');
+
+    final result = await _client
+        .from('system_logs')
+        .select()
+        .eq('is_muted', true)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    logger.i('숨긴 로그 ${result.length}건 조회 완료');
+    return List<Map<String, dynamic>>.from(result);
   }
 }
 

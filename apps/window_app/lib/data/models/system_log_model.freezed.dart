@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SystemLogModel {
 
- String get id; String get source; String? get description;@JsonKey(name: 'category') LogCategory get category;@JsonKey(name: 'code') String? get code;@JsonKey(name: 'log_level') LogLevel get logLevel;@JsonKey(name: 'environment') Environment get environment; Map<String, dynamic> get payload;@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus get responseStatus;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'current_responder_id') String? get currentResponderId;@JsonKey(name: 'current_responder_name') String? get currentResponderName;@JsonKey(name: 'response_started_at') DateTime? get responseStartedAt;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'assigned_by_id') String? get assignedById;@JsonKey(name: 'assigned_by_name') String? get assignedByName;
+ String get id; String get source; String? get description;@JsonKey(name: 'category') LogCategory get category;@JsonKey(name: 'code') String? get code;@JsonKey(name: 'log_level') LogLevel get logLevel;@JsonKey(name: 'environment') Environment get environment; Map<String, dynamic> get payload;@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus get responseStatus;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'current_responder_id') String? get currentResponderId;@JsonKey(name: 'current_responder_name') String? get currentResponderName;@JsonKey(name: 'response_started_at') DateTime? get responseStartedAt;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'assigned_by_id') String? get assignedById;@JsonKey(name: 'assigned_by_name') String? get assignedByName;@JsonKey(name: 'is_muted') bool? get isMuted;
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SystemLogModelCopyWith<SystemLogModel> get copyWith => _$SystemLogModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.assignedById, assignedById) || other.assignedById == assignedById)&&(identical(other.assignedByName, assignedByName) || other.assignedByName == assignedByName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.assignedById, assignedById) || other.assignedById == assignedById)&&(identical(other.assignedByName, assignedByName) || other.assignedByName == assignedByName)&&(identical(other.isMuted, isMuted) || other.isMuted == isMuted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,environment,const DeepCollectionEquality().hash(payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId,assignedById,assignedByName);
+int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,environment,const DeepCollectionEquality().hash(payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId,assignedById,assignedByName,isMuted);
 
 @override
 String toString() {
-  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, environment: $environment, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId, assignedById: $assignedById, assignedByName: $assignedByName)';
+  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, environment: $environment, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId, assignedById: $assignedById, assignedByName: $assignedByName, isMuted: $isMuted)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SystemLogModelCopyWith<$Res>  {
   factory $SystemLogModelCopyWith(SystemLogModel value, $Res Function(SystemLogModel) _then) = _$SystemLogModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel,@JsonKey(name: 'environment') Environment environment, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'assigned_by_id') String? assignedById,@JsonKey(name: 'assigned_by_name') String? assignedByName
+ String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel,@JsonKey(name: 'environment') Environment environment, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'assigned_by_id') String? assignedById,@JsonKey(name: 'assigned_by_name') String? assignedByName,@JsonKey(name: 'is_muted') bool? isMuted
 });
 
 
@@ -65,7 +65,7 @@ class _$SystemLogModelCopyWithImpl<$Res>
 
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? environment = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,Object? assignedById = freezed,Object? assignedByName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? environment = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,Object? assignedById = freezed,Object? assignedByName = freezed,Object? isMuted = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
@@ -83,7 +83,8 @@ as String?,responseStartedAt: freezed == responseStartedAt ? _self.responseStart
 as DateTime?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,assignedById: freezed == assignedById ? _self.assignedById : assignedById // ignore: cast_nullable_to_non_nullable
 as String?,assignedByName: freezed == assignedByName ? _self.assignedByName : assignedByName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isMuted: freezed == isMuted ? _self.isMuted : isMuted // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
@@ -168,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName, @JsonKey(name: 'is_muted')  bool? isMuted)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SystemLogModel() when $default != null:
-return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName,_that.isMuted);case _:
   return orElse();
 
 }
@@ -189,10 +190,10 @@ return $default(_that.id,_that.source,_that.description,_that.category,_that.cod
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName, @JsonKey(name: 'is_muted')  bool? isMuted)  $default,) {final _that = this;
 switch (_that) {
 case _SystemLogModel():
-return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName,_that.isMuted);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +210,10 @@ return $default(_that.id,_that.source,_that.description,_that.category,_that.cod
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String source,  String? description, @JsonKey(name: 'category')  LogCategory category, @JsonKey(name: 'code')  String? code, @JsonKey(name: 'log_level')  LogLevel logLevel, @JsonKey(name: 'environment')  Environment environment,  Map<String, dynamic> payload, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded)  ResponseStatus responseStatus, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'current_responder_id')  String? currentResponderId, @JsonKey(name: 'current_responder_name')  String? currentResponderName, @JsonKey(name: 'response_started_at')  DateTime? responseStartedAt, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'assigned_by_id')  String? assignedById, @JsonKey(name: 'assigned_by_name')  String? assignedByName, @JsonKey(name: 'is_muted')  bool? isMuted)?  $default,) {final _that = this;
 switch (_that) {
 case _SystemLogModel() when $default != null:
-return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName);case _:
+return $default(_that.id,_that.source,_that.description,_that.category,_that.code,_that.logLevel,_that.environment,_that.payload,_that.responseStatus,_that.createdAt,_that.currentResponderId,_that.currentResponderName,_that.responseStartedAt,_that.organizationId,_that.assignedById,_that.assignedByName,_that.isMuted);case _:
   return null;
 
 }
@@ -224,7 +225,7 @@ return $default(_that.id,_that.source,_that.description,_that.category,_that.cod
 @JsonSerializable()
 
 class _SystemLogModel implements SystemLogModel {
-  const _SystemLogModel({required this.id, required this.source, this.description, @JsonKey(name: 'category') this.category = LogCategory.event, @JsonKey(name: 'code') this.code, @JsonKey(name: 'log_level') this.logLevel = LogLevel.info, @JsonKey(name: 'environment') this.environment = Environment.production, final  Map<String, dynamic> payload = const {}, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) this.responseStatus = ResponseStatus.unresponded, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'current_responder_id') this.currentResponderId, @JsonKey(name: 'current_responder_name') this.currentResponderName, @JsonKey(name: 'response_started_at') this.responseStartedAt, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'assigned_by_id') this.assignedById, @JsonKey(name: 'assigned_by_name') this.assignedByName}): _payload = payload;
+  const _SystemLogModel({required this.id, required this.source, this.description, @JsonKey(name: 'category') this.category = LogCategory.event, @JsonKey(name: 'code') this.code, @JsonKey(name: 'log_level') this.logLevel = LogLevel.info, @JsonKey(name: 'environment') this.environment = Environment.production, final  Map<String, dynamic> payload = const {}, @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) this.responseStatus = ResponseStatus.unresponded, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'current_responder_id') this.currentResponderId, @JsonKey(name: 'current_responder_name') this.currentResponderName, @JsonKey(name: 'response_started_at') this.responseStartedAt, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'assigned_by_id') this.assignedById, @JsonKey(name: 'assigned_by_name') this.assignedByName, @JsonKey(name: 'is_muted') this.isMuted}): _payload = payload;
   factory _SystemLogModel.fromJson(Map<String, dynamic> json) => _$SystemLogModelFromJson(json);
 
 @override final  String id;
@@ -249,6 +250,7 @@ class _SystemLogModel implements SystemLogModel {
 @override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override@JsonKey(name: 'assigned_by_id') final  String? assignedById;
 @override@JsonKey(name: 'assigned_by_name') final  String? assignedByName;
+@override@JsonKey(name: 'is_muted') final  bool? isMuted;
 
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +265,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.assignedById, assignedById) || other.assignedById == assignedById)&&(identical(other.assignedByName, assignedByName) || other.assignedByName == assignedByName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemLogModel&&(identical(other.id, id) || other.id == id)&&(identical(other.source, source) || other.source == source)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.code, code) || other.code == code)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.responseStatus, responseStatus) || other.responseStatus == responseStatus)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.currentResponderId, currentResponderId) || other.currentResponderId == currentResponderId)&&(identical(other.currentResponderName, currentResponderName) || other.currentResponderName == currentResponderName)&&(identical(other.responseStartedAt, responseStartedAt) || other.responseStartedAt == responseStartedAt)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.assignedById, assignedById) || other.assignedById == assignedById)&&(identical(other.assignedByName, assignedByName) || other.assignedByName == assignedByName)&&(identical(other.isMuted, isMuted) || other.isMuted == isMuted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,environment,const DeepCollectionEquality().hash(_payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId,assignedById,assignedByName);
+int get hashCode => Object.hash(runtimeType,id,source,description,category,code,logLevel,environment,const DeepCollectionEquality().hash(_payload),responseStatus,createdAt,currentResponderId,currentResponderName,responseStartedAt,organizationId,assignedById,assignedByName,isMuted);
 
 @override
 String toString() {
-  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, environment: $environment, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId, assignedById: $assignedById, assignedByName: $assignedByName)';
+  return 'SystemLogModel(id: $id, source: $source, description: $description, category: $category, code: $code, logLevel: $logLevel, environment: $environment, payload: $payload, responseStatus: $responseStatus, createdAt: $createdAt, currentResponderId: $currentResponderId, currentResponderName: $currentResponderName, responseStartedAt: $responseStartedAt, organizationId: $organizationId, assignedById: $assignedById, assignedByName: $assignedByName, isMuted: $isMuted)';
 }
 
 
@@ -283,7 +285,7 @@ abstract mixin class _$SystemLogModelCopyWith<$Res> implements $SystemLogModelCo
   factory _$SystemLogModelCopyWith(_SystemLogModel value, $Res Function(_SystemLogModel) _then) = __$SystemLogModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel,@JsonKey(name: 'environment') Environment environment, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'assigned_by_id') String? assignedById,@JsonKey(name: 'assigned_by_name') String? assignedByName
+ String id, String source, String? description,@JsonKey(name: 'category') LogCategory category,@JsonKey(name: 'code') String? code,@JsonKey(name: 'log_level') LogLevel logLevel,@JsonKey(name: 'environment') Environment environment, Map<String, dynamic> payload,@JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) ResponseStatus responseStatus,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'current_responder_id') String? currentResponderId,@JsonKey(name: 'current_responder_name') String? currentResponderName,@JsonKey(name: 'response_started_at') DateTime? responseStartedAt,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'assigned_by_id') String? assignedById,@JsonKey(name: 'assigned_by_name') String? assignedByName,@JsonKey(name: 'is_muted') bool? isMuted
 });
 
 
@@ -300,7 +302,7 @@ class __$SystemLogModelCopyWithImpl<$Res>
 
 /// Create a copy of SystemLogModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? environment = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,Object? assignedById = freezed,Object? assignedByName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? source = null,Object? description = freezed,Object? category = null,Object? code = freezed,Object? logLevel = null,Object? environment = null,Object? payload = null,Object? responseStatus = null,Object? createdAt = null,Object? currentResponderId = freezed,Object? currentResponderName = freezed,Object? responseStartedAt = freezed,Object? organizationId = freezed,Object? assignedById = freezed,Object? assignedByName = freezed,Object? isMuted = freezed,}) {
   return _then(_SystemLogModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
@@ -318,7 +320,8 @@ as String?,responseStartedAt: freezed == responseStartedAt ? _self.responseStart
 as DateTime?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,assignedById: freezed == assignedById ? _self.assignedById : assignedById // ignore: cast_nullable_to_non_nullable
 as String?,assignedByName: freezed == assignedByName ? _self.assignedByName : assignedByName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isMuted: freezed == isMuted ? _self.isMuted : isMuted // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
