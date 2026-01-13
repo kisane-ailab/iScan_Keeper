@@ -36,6 +36,9 @@ class SignupScreen extends BasePage {
     final passwordFocus = useFocusNode();
     final confirmPasswordFocus = useFocusNode();
 
+    final obscurePassword = useState(true);
+    final obscureConfirmPassword = useState(true);
+
     Future<void> handleSubmit() async {
       if (state.isLoading) return;
 
@@ -120,12 +123,22 @@ class SignupScreen extends BasePage {
               TextField(
                 controller: passwordController,
                 focusNode: passwordFocus,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '비밀번호',
-                  prefixIcon: Icon(Icons.lock_outlined),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      obscurePassword.value = !obscurePassword.value;
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: obscurePassword.value,
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => confirmPasswordFocus.requestFocus(),
               ),
@@ -133,12 +146,22 @@ class SignupScreen extends BasePage {
               TextField(
                 controller: confirmPasswordController,
                 focusNode: confirmPasswordFocus,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '비밀번호 확인',
-                  prefixIcon: Icon(Icons.lock_outlined),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureConfirmPassword.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      obscureConfirmPassword.value = !obscureConfirmPassword.value;
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: obscureConfirmPassword.value,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => handleSubmit(),
               ),
