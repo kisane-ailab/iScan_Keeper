@@ -6,6 +6,7 @@ import 'package:window_app/data/models/mute_rule_model.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/presentation/pages/main/06_muted/muted_view_model.dart';
+import 'package:window_app/presentation/widgets/admin_label.dart';
 
 class MutedScreen extends HookConsumerWidget {
   const MutedScreen({super.key});
@@ -28,7 +29,12 @@ class MutedScreen extends HookConsumerWidget {
       appBar: AppBar(
         backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
         elevation: 0,
-        title: const Text('숨긴 알림'),
+        title: const Row(
+          children: [
+            Text('숨긴 알림'),
+            AdminLabel(),
+          ],
+        ),
         actions: [
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 16),
