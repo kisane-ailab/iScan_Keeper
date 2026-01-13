@@ -19,6 +19,9 @@ import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 import 'package:window_app/presentation/widgets/admin_label.dart';
+import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
+import 'package:window_app/domain/services/mute_rule_service.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
 
 class AlertScreen extends HookConsumerWidget {
   const AlertScreen({super.key});
@@ -1585,21 +1588,39 @@ class _LogCard extends HookConsumerWidget {
                     ),
                   ],
                 ),
-                // 더보기 메뉴 (할당 등)
-                if (onAssign != null && !entity.isCompleted) ...[
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'assign') {
-                        onAssign?.call();
+                // 더보기 메뉴 (할당, mute 등)
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'assign') {
+                      onAssign?.call();
+                    } else if (value == 'mute_single') {
+                      // 개별 mute
+                      await ref.read(systemLogRealtimeServiceProvider.notifier)
+                          .setLogMuted(entity.id, true);
+                    } else if (value == 'mute_rule') {
+                      // 규칙 기반 mute
+                      final result = await MuteRuleDialog.show(
+                        context: context,
+                        source: entity.source,
+                        code: entity.code,
+                      );
+                      if (result != null) {
+                        await ref.read(muteRuleServiceProvider.notifier).addRule(
+                          source: result.effectiveSource,
+                          code: result.effectiveCode,
+                        );
                       }
-                    },
-                    offset: const Offset(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    color: CupertinoColors.systemBackground.resolveFrom(context),
-                    elevation: 4,
-                    padding: EdgeInsets.zero,
-                    itemBuilder: (context) => [
+                    }
+                  },
+                  offset: const Offset(0, 32),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  color: CupertinoColors.systemBackground.resolveFrom(context),
+                  elevation: 4,
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context) => [
+                    // 할당하기 (관리자 전용, 완료되지 않은 경우)
+                    if (onAssign != null && !entity.isCompleted)
                       PopupMenuItem<String>(
                         value: 'assign',
                         height: 40,
@@ -1615,21 +1636,55 @@ class _LogCard extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6.resolveFrom(context),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        CupertinoIcons.ellipsis,
-                        size: 16,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    // 구분선
+                    if (onAssign != null && !entity.isCompleted)
+                      const PopupMenuDivider(height: 1),
+                    // 이 알림 숨기기
+                    PopupMenuItem<String>(
+                      value: 'mute_single',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.bell_slash,
+                            size: 16,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('이 알림 숨기기', style: TextStyle(fontSize: 13)),
+                        ],
                       ),
                     ),
+                    // 이 종류의 알림 숨기기
+                    PopupMenuItem<String>(
+                      value: 'mute_rule',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.bell_slash_fill,
+                            size: 16,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('이 종류의 알림 숨기기...', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.ellipsis,
+                      size: 16,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
 
