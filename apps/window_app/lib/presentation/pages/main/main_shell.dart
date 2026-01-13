@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/user_model.dart';
-import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
+import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/presentation/layout/base_shell.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
@@ -127,9 +127,18 @@ class MainShell extends BaseShell {
     BuildContext context,
     WidgetRef ref,
   ) {
-    // 이벤트/헬스체크 알림 개수 가져오기
+    // 이벤트/헬스체크 상태 가져오기
     final alertState = ref.watch(alertViewModelProvider);
     final healthCheckState = ref.watch(healthCheckViewModelProvider);
+
+    // 읽음 상태 - 운영중만 안읽은 개수 계산
+    final readState = ref.watch(readStatusServiceProvider);
+    final eventUnreadCount = alertState.productionLogs
+        .where((log) => !readState.readEventIds.contains(log.id))
+        .length;
+    final healthCheckUnreadCount = healthCheckState.productionLogs
+        .where((log) => !readState.readHealthCheckIds.contains(log.id))
+        .length;
 
     // 관리자 여부 확인
     final currentUserAsync = ref.watch(currentUserDetailProvider);
@@ -144,14 +153,14 @@ class MainShell extends BaseShell {
         icon: CupertinoIcons.bell,
         selectedIcon: CupertinoIcons.bell_fill,
         label: '이벤트',
-        badgeCount: alertState.alertCount,
+        badgeCount: eventUnreadCount,
         badgeColor: CupertinoColors.systemRed,
       ),
       _CupertinoNavDestination(
         icon: CupertinoIcons.heart,
         selectedIcon: CupertinoIcons.heart_fill,
         label: '헬스체크',
-        badgeCount: healthCheckState.alertCount,
+        badgeCount: healthCheckUnreadCount,
         badgeColor: CupertinoColors.systemOrange,
       ),
       const _CupertinoNavDestination(

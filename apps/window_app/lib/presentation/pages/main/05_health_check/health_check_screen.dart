@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_glow/flutter_glow.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,10 +14,29 @@ import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
+import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
 import 'package:window_app/presentation/widgets/admin_label.dart';
 import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
+
+/// 정렬 필드
+enum SortField {
+  createdAt('생성시간'),
+  updatedAt('업데이트시간');
+
+  final String label;
+  const SortField(this.label);
+}
+
+/// 정렬 순서
+enum SortOrder {
+  desc('최신순'),
+  asc('오래된순');
+
+  final String label;
+  const SortOrder(this.label);
+}
 
 class HealthCheckScreen extends HookConsumerWidget {
   const HealthCheckScreen({super.key});
@@ -37,22 +58,24 @@ class HealthCheckScreen extends HookConsumerWidget {
       error: (e, s) => false,
     );
 
+    // 읽음 상태 - 안읽은 개수 계산 (탭별 표시용)
+    final readState = ref.watch(readStatusServiceProvider);
+    final productionUnreadCount = state.productionLogs
+        .where((log) => !readState.readHealthCheckIds.contains(log.id))
+        .length;
+    final developmentUnreadCount = state.developmentLogs
+        .where((log) => !readState.readHealthCheckIds.contains(log.id))
+        .length;
+
     return Scaffold(
       backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
       appBar: AppBar(
         backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
         elevation: 0,
-        title: Row(
+        title: const Row(
           children: [
-            const Text('헬스체크'),
-            const AdminLabel(),
-            if (state.alertCount > 0) ...[
-              const SizedBox(width: 10),
-              _StatusBadge(
-                count: state.alertCount,
-                color: CupertinoColors.systemOrange,
-              ),
-            ],
+            Text('헬스체크'),
+            AdminLabel(),
           ],
         ),
         bottom: PreferredSize(
@@ -92,11 +115,11 @@ class HealthCheckScreen extends HookConsumerWidget {
                       const Icon(CupertinoIcons.circle_fill, size: 8, color: CupertinoColors.systemGreen),
                       const SizedBox(width: 6),
                       const Text('운영중'),
-                      if (state.productionAlertCount > 0) ...[
+                      if (productionUnreadCount > 0) ...[
                         const SizedBox(width: 6),
                         _StatusBadge(
-                          count: state.productionAlertCount,
-                          color: CupertinoColors.systemRed,
+                          count: productionUnreadCount,
+                          color: CupertinoColors.systemOrange,
                           small: true,
                         ),
                       ],
@@ -111,11 +134,11 @@ class HealthCheckScreen extends HookConsumerWidget {
                       const Icon(CupertinoIcons.circle_fill, size: 8, color: CupertinoColors.systemYellow),
                       const SizedBox(width: 6),
                       const Text('개발중'),
-                      if (state.developmentAlertCount > 0) ...[
+                      if (developmentUnreadCount > 0) ...[
                         const SizedBox(width: 6),
                         _StatusBadge(
-                          count: state.developmentAlertCount,
-                          color: CupertinoColors.systemOrange,
+                          count: developmentUnreadCount,
+                          color: CupertinoColors.systemYellow,
                           small: true,
                         ),
                       ],
@@ -127,26 +150,29 @@ class HealthCheckScreen extends HookConsumerWidget {
           ),
         ),
       ),
-      body: TabBarView(
-        controller: tabController,
-        children: [
-          _HealthCheckGrid(
-            logs: state.productionLogs,
-            state: state,
-            viewModel: viewModel,
-            isAdmin: isAdmin,
-            emptyMessage: '운영 환경 헬스체크 대기 중...',
-            emptyIcon: CupertinoIcons.checkmark_shield,
-          ),
-          _HealthCheckGrid(
-            logs: state.developmentLogs,
-            state: state,
-            viewModel: viewModel,
-            isAdmin: isAdmin,
-            emptyMessage: '개발 환경 헬스체크 대기 중...',
-            emptyIcon: CupertinoIcons.hammer,
-          ),
-        ],
+      body: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: TabBarView(
+          controller: tabController,
+          children: [
+            _HealthCheckGrid(
+              logs: state.productionLogs,
+              state: state,
+              viewModel: viewModel,
+              isAdmin: isAdmin,
+              emptyMessage: '운영 환경 헬스체크 대기 중...',
+              emptyIcon: CupertinoIcons.checkmark_shield,
+            ),
+            _HealthCheckGrid(
+              logs: state.developmentLogs,
+              state: state,
+              viewModel: viewModel,
+              isAdmin: isAdmin,
+              emptyMessage: '개발 환경 헬스체크 대기 중...',
+              emptyIcon: CupertinoIcons.hammer,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -207,7 +233,11 @@ class _HealthCheckGrid extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scrollController = useScrollController();
+    // 필터 상태 (기본값: 모두 선택)
+    final selectedLevels = useState<Set<LogLevel>>(Set.from(LogLevel.values));
+    // 정렬 상태
+    final sortField = useState(SortField.createdAt);
+    final sortOrder = useState(SortOrder.desc);
 
     if (logs.isEmpty) {
       return _EmptyState(message: emptyMessage, icon: emptyIcon);
@@ -221,33 +251,78 @@ class _HealthCheckGrid extends HookConsumerWidget {
         groupedBySource[log.source] = log;
       }
     }
-    final latestLogs = groupedBySource.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final latestLogs = groupedBySource.values.toList();
+
+    // 필터 적용
+    final filteredLogs = latestLogs
+        .where((log) => selectedLevels.value.contains(log.logLevel))
+        .toList();
+
+    // 정렬 적용
+    filteredLogs.sort((a, b) {
+      final aTime = sortField.value == SortField.createdAt
+          ? a.createdAt
+          : a.updatedAt;
+      final bTime = sortField.value == SortField.createdAt
+          ? b.createdAt
+          : b.updatedAt;
+      return sortOrder.value == SortOrder.desc
+          ? bTime.compareTo(aTime)
+          : aTime.compareTo(bTime);
+    });
 
     return Column(
       children: [
-        // 요약 헤더
-        _SummaryHeader(logs: latestLogs),
+        // 요약 헤더 + 네온 필터 + 정렬
+        _SummaryHeader(
+          logs: latestLogs,
+          selectedLevels: selectedLevels.value,
+          onToggleLevel: (level) {
+            final newSet = Set<LogLevel>.from(selectedLevels.value);
+            if (newSet.contains(level)) {
+              newSet.remove(level);
+            } else {
+              newSet.add(level);
+            }
+            selectedLevels.value = newSet;
+          },
+          sortField: sortField.value,
+          sortOrder: sortOrder.value,
+          onSortFieldChanged: (field) => sortField.value = field,
+          onSortOrderChanged: (order) => sortOrder.value = order,
+        ),
         // 그리드 (각 카드 독립적 높이)
         Expanded(
-          child: MasonryGridView.count(
-            controller: scrollController,
-            crossAxisCount: _getCrossAxisCount(context),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            padding: const EdgeInsets.all(16),
-            itemCount: latestLogs.length,
-            itemBuilder: (context, index) {
-              final log = latestLogs[index];
-              // 해당 소스의 전체 로그 (히스토리용)
-              final sourceLogs = logs.where((l) => l.source == log.source).toList();
-              return _HealthStatusCard(
-                entity: log,
-                historyLogs: sourceLogs,
-                isAdmin: isAdmin,
-              );
-            },
-          ),
+          child: filteredLogs.isEmpty
+              ? Center(
+                  child: Text(
+                    '선택된 필터에 해당하는 항목이 없습니다',
+                    style: TextStyle(
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                )
+              : ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                  child: MasonryGridView.count(
+                    crossAxisCount: _getCrossAxisCount(context),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredLogs.length,
+                    itemBuilder: (context, index) {
+                      final log = filteredLogs[index];
+                      // 해당 소스의 전체 로그 (히스토리용)
+                      final sourceLogs = logs.where((l) => l.source == log.source).toList();
+                      return _HealthStatusCard(
+                        entity: log,
+                        historyLogs: sourceLogs,
+                        isAdmin: isAdmin,
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -262,11 +337,25 @@ class _HealthCheckGrid extends HookConsumerWidget {
   }
 }
 
-/// 요약 헤더
+/// 요약 헤더 + 네온 필터 + 정렬
 class _SummaryHeader extends StatelessWidget {
-  const _SummaryHeader({required this.logs});
+  const _SummaryHeader({
+    required this.logs,
+    required this.selectedLevels,
+    required this.onToggleLevel,
+    required this.sortField,
+    required this.sortOrder,
+    required this.onSortFieldChanged,
+    required this.onSortOrderChanged,
+  });
 
   final List<SystemLogEntity> logs;
+  final Set<LogLevel> selectedLevels;
+  final void Function(LogLevel) onToggleLevel;
+  final SortField sortField;
+  final SortOrder sortOrder;
+  final void Function(SortField) onSortFieldChanged;
+  final void Function(SortOrder) onSortOrderChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -305,18 +394,249 @@ class _SummaryHeader extends StatelessWidget {
               color: CupertinoColors.label.resolveFrom(context),
             ),
           ),
+          const SizedBox(width: 16),
+          // 정렬 UI
+          _SortSelector(
+            sortField: sortField,
+            sortOrder: sortOrder,
+            onSortFieldChanged: onSortFieldChanged,
+            onSortOrderChanged: onSortOrderChanged,
+          ),
           const Spacer(),
-          if (criticalCount > 0) _SummaryChip(label: 'Critical', count: criticalCount, color: const Color(0xFFDC143C)),
-          if (errorCount > 0) _SummaryChip(label: 'Error', count: errorCount, color: CupertinoColors.systemOrange),
-          if (warningCount > 0) _SummaryChip(label: 'Warning', count: warningCount, color: const Color(0xFFFFCC00)),
-          if (okCount > 0) _SummaryChip(label: 'OK', count: okCount, color: CupertinoColors.systemGreen),
+          // 네온 필터 칩들
+          _NeonFilterChip(
+            label: 'Critical',
+            count: criticalCount,
+            color: const Color(0xFFFF1744),
+            isSelected: selectedLevels.contains(LogLevel.critical),
+            onTap: () => onToggleLevel(LogLevel.critical),
+          ),
+          const SizedBox(width: 8),
+          _NeonFilterChip(
+            label: 'Error',
+            count: errorCount,
+            color: const Color(0xFFFF9100),
+            isSelected: selectedLevels.contains(LogLevel.error),
+            onTap: () => onToggleLevel(LogLevel.error),
+          ),
+          const SizedBox(width: 8),
+          _NeonFilterChip(
+            label: 'Warning',
+            count: warningCount,
+            color: const Color(0xFFFFEA00),
+            isSelected: selectedLevels.contains(LogLevel.warning),
+            onTap: () => onToggleLevel(LogLevel.warning),
+          ),
+          const SizedBox(width: 8),
+          _NeonFilterChip(
+            label: 'OK',
+            count: okCount,
+            color: const Color(0xFF00E676),
+            isSelected: selectedLevels.contains(LogLevel.info),
+            onTap: () => onToggleLevel(LogLevel.info),
+          ),
         ],
       ),
     );
   }
 }
 
-/// 요약 칩
+/// 정렬 선택기
+class _SortSelector extends StatelessWidget {
+  const _SortSelector({
+    required this.sortField,
+    required this.sortOrder,
+    required this.onSortFieldChanged,
+    required this.onSortOrderChanged,
+  });
+
+  final SortField sortField;
+  final SortOrder sortOrder;
+  final void Function(SortField) onSortFieldChanged;
+  final void Function(SortOrder) onSortOrderChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 정렬 필드 선택
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGrey6.resolveFrom(context),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: PopupMenuButton<SortField>(
+            tooltip: '정렬 기준',
+            initialValue: sortField,
+            onSelected: onSortFieldChanged,
+            offset: const Offset(0, 32),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  CupertinoIcons.arrow_up_arrow_down,
+                  size: 12,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  sortField.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CupertinoColors.label.resolveFrom(context),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  CupertinoIcons.chevron_down,
+                  size: 10,
+                  color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                ),
+              ],
+            ),
+            itemBuilder: (context) => SortField.values
+                .map((field) => PopupMenuItem<SortField>(
+                      value: field,
+                      height: 36,
+                      child: Text(
+                        field.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: field == sortField ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ),
+        const SizedBox(width: 6),
+        // 정렬 순서 토글
+        GestureDetector(
+          onTap: () => onSortOrderChanged(
+            sortOrder == SortOrder.desc ? SortOrder.asc : SortOrder.desc,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey6.resolveFrom(context),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  sortOrder == SortOrder.desc
+                      ? CupertinoIcons.arrow_down
+                      : CupertinoIcons.arrow_up,
+                  size: 12,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  sortOrder.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CupertinoColors.label.resolveFrom(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 네온 필터 칩
+class _NeonFilterChip extends StatelessWidget {
+  const _NeonFilterChip({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : color.withValues(alpha: 0.3),
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.6),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected)
+              GlowIcon(
+                CupertinoIcons.circle_fill,
+                size: 8,
+                color: color,
+                glowColor: color,
+              )
+            else
+              Icon(
+                CupertinoIcons.circle,
+                size: 8,
+                color: color.withValues(alpha: 0.4),
+              ),
+            const SizedBox(width: 6),
+            Text(
+              '$label $count',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? color : color.withValues(alpha: 0.5),
+                shadows: isSelected
+                    ? [
+                        Shadow(
+                          color: color.withValues(alpha: 0.8),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 요약 칩 (기존 - 미사용)
 class _SummaryChip extends StatelessWidget {
   const _SummaryChip({
     required this.label,
@@ -471,14 +791,18 @@ class _HealthStatusCard extends HookConsumerWidget {
     final levelColor = _getLevelColor(entity.logLevel);
     final isExpanded = useState(false);
 
-    // 1초마다 리빌드하여 경과시간 업데이트
-    final tick = useState(0);
+    // 읽음 상태
+    final readStatusService = ref.read(readStatusServiceProvider.notifier);
+    final readState = ref.watch(readStatusServiceProvider);
+    final isRead = readState.readHealthCheckIds.contains(entity.id);
+
+    // 확장 시 읽음 처리
     useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        tick.value++;
-      });
-      return timer.cancel;
-    }, []);
+      if (isExpanded.value && !isRead) {
+        readStatusService.markHealthCheckAsRead(entity.id);
+      }
+      return null;
+    }, [isExpanded.value]);
 
     // Mute 애니메이션
     final isMuting = useState(false);
@@ -518,23 +842,25 @@ class _HealthStatusCard extends HookConsumerWidget {
           duration: const Duration(milliseconds: 50),
           child: GestureDetector(
             onTap: () => isExpanded.value = !isExpanded.value,
-            child: Container(
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemBackground.resolveFrom(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: levelColor.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: levelColor.withValues(alpha: 0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+            child: Opacity(
+              opacity: isRead ? 0.6 : 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemBackground.resolveFrom(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: levelColor.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
-                ],
-              ),
-              child: Column(
+                  boxShadow: [
+                    BoxShadow(
+                      color: levelColor.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -569,9 +895,12 @@ class _HealthStatusCard extends HookConsumerWidget {
                             children: [
                               Text(
                                 entity.source,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: isRead ? FontWeight.w600 : FontWeight.w700,
+                                  color: isRead
+                                      ? CupertinoColors.secondaryLabel.resolveFrom(context)
+                                      : CupertinoColors.label.resolveFrom(context),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -646,12 +975,8 @@ class _HealthStatusCard extends HookConsumerWidget {
                                 ),
                               ),
                             ],
-                            child: Container(
+                            child: Padding(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGrey6.resolveFrom(context),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
                               child: Icon(
                                 CupertinoIcons.ellipsis,
                                 size: 16,
@@ -700,11 +1025,10 @@ class _HealthStatusCard extends HookConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              entity.formattedCreatedElapsedTime,
+                              entity.formattedCreatedAt,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                                fontFamily: 'monospace',
                               ),
                             ),
                           ],
@@ -722,24 +1046,39 @@ class _HealthStatusCard extends HookConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
-                        // 확장 영역 (고정 높이)
-                        AnimatedCrossFade(
-                          firstChild: const SizedBox.shrink(),
-                          secondChild: Container(
-                            constraints: const BoxConstraints(maxHeight: 180),
+                        // 확장 영역 (고정 높이, 스크롤 가능) - flutter_animate 사용
+                        if (isExpanded.value)
+                          Container(
+                            height: 180,
                             margin: const EdgeInsets.only(top: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: CupertinoColors.systemGrey6.resolveFrom(context),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: _buildExpandedContent(context),
-                          ),
-                          crossFadeState: isExpanded.value
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                          duration: const Duration(milliseconds: 200),
-                        ),
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                              child: SingleChildScrollView(
+                                physics: const ClampingScrollPhysics(),
+                                child: _buildExpandedContent(context),
+                              ),
+                            ),
+                          )
+                              .animate()
+                              .fadeIn(duration: 250.ms, curve: Curves.easeOut)
+                              .slideY(
+                                begin: -0.1,
+                                end: 0,
+                                duration: 300.ms,
+                                curve: Curves.easeOutCubic,
+                              )
+                              .scaleY(
+                                begin: 0.95,
+                                end: 1.0,
+                                alignment: Alignment.topCenter,
+                                duration: 250.ms,
+                                curve: Curves.easeOut,
+                              ),
                         // 하단 버튼 영역
                         const SizedBox(height: 10),
                         Row(
@@ -752,10 +1091,17 @@ class _HealthStatusCard extends HookConsumerWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    isExpanded.value ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                                    CupertinoIcons.chevron_down,
                                     size: 12,
                                     color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                                  ),
+                                  )
+                                      .animate(target: isExpanded.value ? 1 : 0)
+                                      .rotate(
+                                        begin: 0,
+                                        end: 0.5,
+                                        duration: 200.ms,
+                                        curve: Curves.easeInOut,
+                                      ),
                                   const SizedBox(width: 4),
                                   Text(
                                     isExpanded.value ? '접기' : '상세보기',
@@ -801,7 +1147,8 @@ class _HealthStatusCard extends HookConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildExpandedContent(BuildContext context) {
