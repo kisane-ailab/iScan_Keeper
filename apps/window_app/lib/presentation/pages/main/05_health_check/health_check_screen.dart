@@ -1031,17 +1031,18 @@ class _HealthCheckCard extends HookConsumerWidget {
       }
     }
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      child: isMuteComplete.value
-          ? const SizedBox.shrink()
-          : AnimatedOpacity(
-      opacity: isMuting.value ? (1.0 - fadeAnimation) : 1.0,
-      duration: const Duration(milliseconds: 50),
-      child: Transform.scale(
-        scale: isMuting.value ? scaleAnimation : 1.0,
-        child: GestureDetector(
+    return ClipRect(
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        heightFactor: isMuteComplete.value ? 0.0 : 1.0,
+        child: AnimatedOpacity(
+          opacity: isMuting.value ? (1.0 - fadeAnimation) : 1.0,
+          duration: const Duration(milliseconds: 50),
+          child: Transform.scale(
+            scale: isMuting.value ? scaleAnimation : 1.0,
+            child: GestureDetector(
       onTap: () => isExpanded.value = !isExpanded.value,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1495,6 +1496,7 @@ class _HealthCheckCard extends HookConsumerWidget {
       ),
       ),
       ),
+        ),
       ),
     );
   }
