@@ -24,6 +24,24 @@ import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
 
+/// 정렬 필드
+enum SortField {
+  createdAt('생성시간'),
+  updatedAt('업데이트시간');
+
+  final String label;
+  const SortField(this.label);
+}
+
+/// 정렬 순서
+enum SortOrder {
+  desc('최신순'),
+  asc('오래된순');
+
+  final String label;
+  const SortOrder(this.label);
+}
+
 class AlertScreen extends HookConsumerWidget {
   const AlertScreen({super.key});
 
@@ -616,6 +634,126 @@ class _CupertinoBadge extends StatelessWidget {
   }
 }
 
+/// 정렬 헤더
+class _SortHeader extends StatelessWidget {
+  const _SortHeader({
+    required this.sortField,
+    required this.sortOrder,
+    required this.onSortFieldChanged,
+    required this.onSortOrderChanged,
+    required this.totalCount,
+  });
+
+  final SortField sortField;
+  final SortOrder sortOrder;
+  final void Function(SortField) onSortFieldChanged;
+  final void Function(SortOrder) onSortOrderChanged;
+  final int totalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // 총 개수
+          Text(
+            '총 $totalCount건',
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Spacer(),
+          // 정렬 필드 선택
+          PopupMenuButton<SortField>(
+            tooltip: '정렬 기준',
+            initialValue: sortField,
+            onSelected: onSortFieldChanged,
+            offset: const Offset(0, 36),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.sort_down,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sortField.label,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            itemBuilder: (context) => SortField.values
+                .map((field) => PopupMenuItem<SortField>(
+                      value: field,
+                      child: Text(
+                        field.label,
+                        style: TextStyle(
+                          fontWeight: field == sortField ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(width: 8),
+          // 정렬 순서 토글
+          GestureDetector(
+            onTap: () => onSortOrderChanged(
+              sortOrder == SortOrder.desc ? SortOrder.asc : SortOrder.desc,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    sortOrder == SortOrder.desc
+                        ? CupertinoIcons.arrow_down
+                        : CupertinoIcons.arrow_up,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sortOrder.label,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 탭 콘텐츠 (Production/Development 공용)
 class _AlertTabContent extends HookConsumerWidget {
   const _AlertTabContent({
@@ -638,6 +776,10 @@ class _AlertTabContent extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAlwaysOnTop = ref.watch(alwaysOnTopStateProvider);
     final settings = ref.watch(notificationSettingsServiceProvider);
+
+    // 정렬 상태
+    final sortField = useState(SortField.createdAt);
+    final sortOrder = useState(SortOrder.desc);
 
     // 현재 유저 정보 (관리자 여부 확인)
     final currentUserAsync = ref.watch(currentUserDetailProvider);
@@ -664,6 +806,20 @@ class _AlertTabContent extends HookConsumerWidget {
       return action == NotificationAction.alwaysOnTop;
     }).toList();
 
+    // 정렬 적용
+    final sortedLogs = List<SystemLogEntity>.from(logs);
+    sortedLogs.sort((a, b) {
+      final aTime = sortField.value == SortField.createdAt
+          ? a.createdAt
+          : a.updatedAt;
+      final bTime = sortField.value == SortField.createdAt
+          ? b.createdAt
+          : b.updatedAt;
+      return sortOrder.value == SortOrder.desc
+          ? bTime.compareTo(aTime)
+          : aTime.compareTo(bTime);
+    });
+
     return Column(
       children: [
         // 필터 영역
@@ -679,9 +835,19 @@ class _AlertTabContent extends HookConsumerWidget {
             onRespond: (entity) => _showResponseDialog(context, ref, entity),
           ),
 
+        // 정렬 헤더
+        if (sortedLogs.isNotEmpty)
+          _SortHeader(
+            sortField: sortField.value,
+            sortOrder: sortOrder.value,
+            onSortFieldChanged: (field) => sortField.value = field,
+            onSortOrderChanged: (order) => sortOrder.value = order,
+            totalCount: sortedLogs.length,
+          ),
+
         // 메인 콘텐츠
         Expanded(
-          child: logs.isEmpty
+          child: sortedLogs.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -721,9 +887,9 @@ class _AlertTabContent extends HookConsumerWidget {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: logs.length,
+                  itemCount: sortedLogs.length,
                   itemBuilder: (context, index) {
-                    final entity = logs[index];
+                    final entity = sortedLogs[index];
                     return _LogCard(
                       entity: entity,
                       onRespond: () =>
