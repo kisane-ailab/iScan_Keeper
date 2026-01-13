@@ -1,21 +1,34 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/presentation/layout/base_shell.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
 
-/// 레일 표시 상태를 관리하는 Notifier
-class RailVisibleNotifier extends Notifier<bool> {
+/// 레일 상태 (고정 여부)
+class RailPinnedNotifier extends Notifier<bool> {
   @override
-  bool build() => true;
+  bool build() => true; // 기본값: 고정됨
 
   void toggle() => state = !state;
+  void pin() => state = true;
+  void unpin() => state = false;
 }
 
-final railVisibleProvider = NotifierProvider<RailVisibleNotifier, bool>(
-  RailVisibleNotifier.new,
+final railPinnedProvider = NotifierProvider<RailPinnedNotifier, bool>(
+  RailPinnedNotifier.new,
+);
+
+/// 레일 호버 상태
+class RailHoveredNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setHovered(bool value) => state = value;
+}
+
+final railHoveredProvider = NotifierProvider<RailHoveredNotifier, bool>(
+  RailHoveredNotifier.new,
 );
 
 /// 메인 쉘 레이아웃
@@ -28,29 +41,72 @@ class MainShell extends BaseShell {
 
   @override
   Widget buildBody(BuildContext context, WidgetRef ref) {
-    final isRailVisible = ref.watch(railVisibleProvider);
+    final isPinned = ref.watch(railPinnedProvider);
+    final isHovered = ref.watch(railHoveredProvider);
+    final isRailVisible = isPinned || isHovered;
 
-    return Row(
+    return Stack(
       children: [
-        // 좌측 네비게이션 메뉴 (쿠퍼티노 스타일)
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          width: isRailVisible ? 88 : 0,
-          child: isRailVisible
-              ? _CupertinoNavigationRail(
+        // 메인 콘텐츠 영역
+        Row(
+          children: [
+            // 고정된 레일 공간 (고정 시에만 공간 차지)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              width: isPinned ? 88 : 0,
+            ),
+            // 우측 콘텐츠 영역
+            Expanded(
+              child: navigationShell,
+            ),
+          ],
+        ),
+        // 호버 트리거 영역 (레일이 숨겨져 있을 때만 활성화)
+        if (!isPinned)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: MouseRegion(
+              onEnter: (_) {
+                ref.read(railHoveredProvider.notifier).setHovered(true);
+              },
+              child: Container(
+                width: 8,
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+        // 슬라이딩 레일
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: MouseRegion(
+            onExit: (_) {
+              if (!isPinned) {
+                ref.read(railHoveredProvider.notifier).setHovered(false);
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              width: isRailVisible ? 88 : 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: isRailVisible ? 1.0 : 0.0,
+                child: _CupertinoNavigationRail(
                   selectedIndex: currentIndex,
                   onDestinationSelected: onDestinationSelected,
                   leading: buildLeading(context, ref),
                   destinations: buildDestinations(context, ref),
-                )
-              : null,
-        ),
-        // 토글 버튼
-        _RailToggleButton(isVisible: isRailVisible),
-        // 우측 콘텐츠 영역
-        Expanded(
-          child: navigationShell,
+                  isPinned: isPinned,
+                  showShadow: !isPinned && isHovered,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -64,7 +120,7 @@ class MainShell extends BaseShell {
 
   /// NavigationRail 목적지 목록
   @protected
-  List<_CupertinoNavDestination> buildDestinations(
+  List<_CupertinoNavDestination> buildDestinations( // ignore: library_private_types_in_public_api
     BuildContext context,
     WidgetRef ref,
   ) {
@@ -106,56 +162,6 @@ class MainShell extends BaseShell {
   }
 }
 
-/// 레일 토글 버튼
-class _RailToggleButton extends ConsumerWidget {
-  const _RailToggleButton({required this.isVisible});
-
-  final bool isVisible;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          ref.read(railVisibleProvider.notifier).toggle();
-        },
-        child: Container(
-          width: 16,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            border: Border(
-              right: BorderSide(
-                color: CupertinoColors.separator.resolveFrom(context),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Center(
-            child: Container(
-              width: 16,
-              height: 48,
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6.resolveFrom(context),
-                borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(4),
-                ),
-              ),
-              child: Icon(
-                isVisible
-                    ? CupertinoIcons.chevron_left
-                    : CupertinoIcons.chevron_right,
-                size: 10,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 쿠퍼티노 스타일 네비게이션 목적지
 class _CupertinoNavDestination {
   const _CupertinoNavDestination({
@@ -174,52 +180,153 @@ class _CupertinoNavDestination {
 }
 
 /// 쿠퍼티노 스타일 네비게이션 레일
-class _CupertinoNavigationRail extends StatelessWidget {
+class _CupertinoNavigationRail extends ConsumerStatefulWidget {
   const _CupertinoNavigationRail({
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.destinations,
     this.leading,
+    this.isPinned = true,
+    this.showShadow = false,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final List<_CupertinoNavDestination> destinations;
   final Widget? leading;
+  final bool isPinned;
+  final bool showShadow;
+
+  @override
+  ConsumerState<_CupertinoNavigationRail> createState() =>
+      _CupertinoNavigationRailState();
+}
+
+class _CupertinoNavigationRailState
+    extends ConsumerState<_CupertinoNavigationRail> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 88,
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground.resolveFrom(context),
-        border: Border(
-          right: BorderSide(
-            color: CupertinoColors.separator.resolveFrom(context),
-            width: 0.5,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        width: 88,
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          border: Border(
+            right: BorderSide(
+              color: CupertinoColors.separator.resolveFrom(context),
+              width: 0.5,
+            ),
           ),
+          // 호버로 나타났을 때 그림자 효과
+          boxShadow: widget.showShadow
+              ? [
+                  BoxShadow(
+                    color: CupertinoColors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(4, 0),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            // 상단 토글 버튼 영역
+            _RailToggleHeader(
+              isPinned: widget.isPinned,
+              isHovered: _isHovered,
+            ),
+            if (widget.leading != null) widget.leading!,
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: widget.destinations.length,
+                itemBuilder: (context, index) {
+                  final dest = widget.destinations[index];
+                  final isSelected = index == widget.selectedIndex;
+                  return _CupertinoNavItem(
+                    icon: isSelected ? dest.selectedIcon : dest.icon,
+                    label: dest.label,
+                    isSelected: isSelected,
+                    badgeCount: dest.badgeCount,
+                    badgeColor: dest.badgeColor,
+                    onTap: () => widget.onDestinationSelected(index),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
-      child: Column(
+    );
+  }
+}
+
+/// 레일 상단 토글 헤더 (노션 스타일)
+class _RailToggleHeader extends ConsumerStatefulWidget {
+  const _RailToggleHeader({
+    required this.isPinned,
+    required this.isHovered,
+  });
+
+  final bool isPinned;
+  final bool isHovered;
+
+  @override
+  ConsumerState<_RailToggleHeader> createState() => _RailToggleHeaderState();
+}
+
+class _RailToggleHeaderState extends ConsumerState<_RailToggleHeader> {
+  bool _isButtonHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // 호버 중이거나 고정 해제 상태일 때 버튼 표시
+    final showButton = widget.isHovered || !widget.isPinned;
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
         children: [
-          if (leading != null) leading!,
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: destinations.length,
-              itemBuilder: (context, index) {
-                final dest = destinations[index];
-                final isSelected = index == selectedIndex;
-                return _CupertinoNavItem(
-                  icon: isSelected ? dest.selectedIcon : dest.icon,
-                  label: dest.label,
-                  isSelected: isSelected,
-                  badgeCount: dest.badgeCount,
-                  badgeColor: dest.badgeColor,
-                  onTap: () => onDestinationSelected(index),
-                );
-              },
+          // 토글 버튼 (호버 시에만 표시)
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            opacity: showButton ? 1.0 : 0.0,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _isButtonHovered = true),
+              onExit: (_) => setState(() => _isButtonHovered = false),
+              child: GestureDetector(
+                onTap: showButton
+                    ? () => ref.read(railPinnedProvider.notifier).toggle()
+                    : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: _isButtonHovered
+                        ? CupertinoColors.systemGrey5.resolveFrom(context)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      widget.isPinned
+                          ? CupertinoIcons.sidebar_left
+                          : CupertinoIcons.arrow_right_to_line,
+                      size: 16,
+                      color: _isButtonHovered
+                          ? CupertinoColors.label.resolveFrom(context)
+                          : CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

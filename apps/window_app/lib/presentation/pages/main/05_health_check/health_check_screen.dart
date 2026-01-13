@@ -465,15 +465,14 @@ class _HealthCheckCard extends HookConsumerWidget {
     final authState = ref.watch(authServiceProvider);
     final isMyResponse = entity.currentResponderId == authState.user?.id;
 
-    // 대응 중일 때만 1초마다 리빌드
+    // 1초마다 리빌드하여 경과시간 업데이트 (발생 후 경과시간 + 대응 경과시간)
     final tick = useState(0);
     useEffect(() {
-      if (!entity.isBeingResponded) return null;
       final timer = Timer.periodic(const Duration(seconds: 1), (_) {
         tick.value++;
       });
       return timer.cancel;
-    }, [entity.isBeingResponded]);
+    }, []);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -540,12 +539,34 @@ class _HealthCheckCard extends HookConsumerWidget {
                     ],
                   ),
                 ),
-                Text(
-                  entity.formattedCreatedAt,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      entity.formattedCreatedAt,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemGrey5.resolveFrom(context),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        entity.formattedCreatedElapsedTime,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

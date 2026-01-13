@@ -110,6 +110,25 @@ class SystemLogEntity {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  /// 발생 후 경과 시간 (Duration)
+  Duration get createdElapsedDuration {
+    return DateTime.now().difference(createdAt);
+  }
+
+  /// 발생 후 경과 시간 포맷 (HH:mm:ss 또는 mm:ss)
+  String get formattedCreatedElapsedTime {
+    final duration = createdElapsedDuration;
+
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   String _formatDateTime(DateTime dt) {
     final month = dt.month.toString().padLeft(2, '0');
     final day = dt.day.toString().padLeft(2, '0');

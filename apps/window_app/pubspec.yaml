@@ -65,6 +65,9 @@ dependencies:
   # Logger
   logger: ^2.5.0
 
+  # Timer/Countdown
+  slide_countdown: ^2.0.1
+
   # Environment
   envied: ^1.1.1
 
