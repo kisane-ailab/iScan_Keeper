@@ -757,7 +757,7 @@ class _MuteRuleCardState extends State<_MuteRuleCard> {
             secondChild: Container(
               constraints: const BoxConstraints(maxHeight: 250),
               decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                color: CupertinoColors.systemBackground.resolveFrom(context),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(14),
                   bottomRight: Radius.circular(14),
