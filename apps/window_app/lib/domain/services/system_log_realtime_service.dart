@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +8,7 @@ import 'package:window_app/data/models/notification_settings.dart';
 import 'package:window_app/data/models/system_log_model.dart';
 import 'package:window_app/data/repositories/system_log_repository_impl.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
+import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/notification/notification_handler.dart';
@@ -182,7 +184,43 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 대응 시작 감지 (unchecked → in_progress)
       if (localOldEntity.isUnchecked && newEntity.isBeingResponded) {
         _logger.i('대응 시작 감지: ${newEntity.id} by ${newEntity.currentResponderName}');
-        await NotificationHandler.showResponseStarted(newEntity);
+
+        // 할당인 경우 (assigned_by_id가 있음)
+        if (newEntity.isAssigned && newEntity.assignedByName != null) {
+          final currentUserId = ref.read(authServiceProvider).user?.id;
+
+          // 내가 할당받은 경우에만 알림 표시
+          if (newEntity.currentResponderId == currentUserId) {
+            _logger.i('나에게 할당됨: ${newEntity.assignedByName} → 나');
+            await NotificationHandler.showAssigned(
+              entity: newEntity,
+              assignedByName: newEntity.assignedByName!,
+            );
+            // 앱 내 스낵바 표시
+            rootScaffoldMessengerKey.currentState?.showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${newEntity.assignedByName}님이 [${newEntity.source}] 이슈를 할당했습니다',
+                ),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: '확인',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          } else {
+            // 다른 사람에게 할당된 경우
+            _logger.i('다른 사람에게 할당됨: ${newEntity.assignedByName} → ${newEntity.currentResponderName}');
+            await NotificationHandler.showResponseStarted(newEntity);
+          }
+        } else {
+          // 자원인 경우
+          await NotificationHandler.showResponseStarted(newEntity);
+        }
 
         // 항상위 모드가 필요한 미대응 로그가 더 이상 없으면 해제
         await checkAndReleaseAlwaysOnTop();

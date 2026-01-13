@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +8,13 @@ import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
+import 'package:window_app/data/models/enums/user_status.dart';
+import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
+import 'package:window_app/presentation/widgets/admin_label.dart';
 
 class HealthCheckScreen extends HookConsumerWidget {
   const HealthCheckScreen({super.key});
@@ -32,6 +36,7 @@ class HealthCheckScreen extends HookConsumerWidget {
         title: Row(
           children: [
             const Text('헬스체크'),
+            const AdminLabel(),
             if (state.alertCount > 0) ...[
               const SizedBox(width: 10),
               _CupertinoBadge(
@@ -613,6 +618,14 @@ class _HealthCheckTabContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 현재 유저 정보 (관리자 여부 확인)
+    final currentUserAsync = ref.watch(currentUserDetailProvider);
+    final isAdmin = currentUserAsync.when(
+      data: (user) => user?.isAdmin ?? false,
+      loading: () => false,
+      error: (e, s) => false,
+    );
+
     return Column(
       children: [
         // 필터 영역
@@ -670,6 +683,9 @@ class _HealthCheckTabContent extends HookConsumerWidget {
                 onRespond: () => _showResponseDialog(context, ref, entity),
                 onAbandon: () => _abandonResponse(context, ref, entity),
                 onComplete: () => _showCompleteDialog(context, ref, entity),
+                onAssign: isAdmin
+                    ? () => _showAssignDialog(context, ref, entity)
+                    : null,
               );
             },
           ),
@@ -846,6 +862,44 @@ class _HealthCheckTabContent extends HookConsumerWidget {
       ),
     );
   }
+
+  Future<void> _showAssignDialog(
+      BuildContext context, WidgetRef ref, SystemLogEntity entity) async {
+    final orgUsersAsync = ref.read(organizationUsersProvider.future);
+    final users = await orgUsersAsync;
+
+    if (!context.mounted) return;
+
+    if (users.isEmpty) {
+      _showCupertinoToast(context, '할당 가능한 팀원이 없습니다', false);
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AssignBottomSheet(
+        entity: entity,
+        users: users,
+        onAssign: (user) async {
+          Navigator.pop(context);
+          final service = ref.read(eventResponseServiceProvider.notifier);
+          final success = await service.assignResponse(entity, user);
+
+          if (context.mounted) {
+            _showCupertinoToast(
+              context,
+              success
+                  ? '${user.name}님에게 [${entity.source}] 이슈를 할당했습니다'
+                  : '할당에 실패했습니다',
+              success,
+            );
+          }
+        },
+      ),
+    );
+  }
 }
 
 /// 정보 행 위젯
@@ -890,12 +944,14 @@ class _HealthCheckCard extends HookConsumerWidget {
     required this.onRespond,
     required this.onAbandon,
     required this.onComplete,
+    this.onAssign,
   });
 
   final SystemLogEntity entity;
   final VoidCallback onRespond;
   final VoidCallback onAbandon;
   final VoidCallback onComplete;
+  final VoidCallback? onAssign;
 
   Color _getLevelColor(LogLevel level) {
     switch (level) {
@@ -927,8 +983,13 @@ class _HealthCheckCard extends HookConsumerWidget {
       return timer.cancel;
     }, []);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    // 확장 상태
+    final isExpanded = useState(false);
+
+    return GestureDetector(
+      onTap: () => isExpanded.value = !isExpanded.value,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
         borderRadius: BorderRadius.circular(14),
@@ -1021,6 +1082,51 @@ class _HealthCheckCard extends HookConsumerWidget {
                     ),
                   ],
                 ),
+                // 더보기 메뉴 (할당 등)
+                if (onAssign != null && !entity.isCompleted) ...[
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'assign') {
+                        onAssign?.call();
+                      }
+                    },
+                    offset: const Offset(0, 32),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    color: CupertinoColors.systemBackground.resolveFrom(context),
+                    elevation: 4,
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'assign',
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.person_badge_plus,
+                              size: 16,
+                              color: CupertinoColors.systemBlue,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('할당하기', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemGrey6.resolveFrom(context),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        CupertinoIcons.ellipsis,
+                        size: 16,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
 
@@ -1076,8 +1182,10 @@ class _HealthCheckCard extends HookConsumerWidget {
                 if (entity.isBeingResponded &&
                     entity.currentResponderName != null) ...[
                   const SizedBox(width: 12),
-                  const Icon(
-                    CupertinoIcons.person_fill,
+                  Icon(
+                    entity.isAssigned
+                        ? CupertinoIcons.person_badge_plus_fill
+                        : CupertinoIcons.person_fill,
                     size: 16,
                     color: CupertinoColors.systemBlue,
                   ),
@@ -1090,6 +1198,25 @@ class _HealthCheckCard extends HookConsumerWidget {
                       color: CupertinoColors.systemBlue,
                     ),
                   ),
+                  // 할당 여부 표시
+                  if (entity.isAssigned) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemIndigo.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '할당',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.systemIndigo,
+                        ),
+                      ),
+                    ),
+                  ],
                   // 경과 시간 (실시간)
                   if (entity.formattedElapsedTime != null) ...[
                     const SizedBox(width: 10),
@@ -1221,8 +1348,331 @@ class _HealthCheckCard extends HookConsumerWidget {
                 ],
               ),
             ],
+
+            // 페이로드 섹션 (확장 시 표시)
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: _buildPayloadSection(context),
+              crossFadeState: isExpanded.value
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+            ),
+
+            // 확장 힌트
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isExpanded.value
+                        ? CupertinoIcons.chevron_up
+                        : CupertinoIcons.chevron_down,
+                    size: 14,
+                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isExpanded.value ? '접기' : '페이로드 보기',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildPayloadSection(BuildContext context) {
+    if (entity.payload.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGrey6.resolveFrom(context),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '페이로드 없음',
+            style: TextStyle(
+              fontSize: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.doc_text,
+                  size: 14,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Payload',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemBackground.resolveFrom(context),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                _formatPayload(entity.payload),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: CupertinoColors.label.resolveFrom(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatPayload(Map<String, dynamic> payload) {
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(payload);
+    } catch (e) {
+      return payload.toString();
+    }
+  }
+}
+
+/// 할당 바텀시트
+class _AssignBottomSheet extends StatelessWidget {
+  const _AssignBottomSheet({
+    required this.entity,
+    required this.users,
+    required this.onAssign,
+  });
+
+  final SystemLogEntity entity;
+  final List<UserModel> users;
+  final void Function(UserModel user) onAssign;
+
+  Color _getStatusColor(UserStatus status) {
+    switch (status) {
+      case UserStatus.online:
+        return CupertinoColors.systemGreen;
+      case UserStatus.offline:
+        return CupertinoColors.systemGrey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 헤더
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: CupertinoColors.separator.resolveFrom(context),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  CupertinoIcons.person_badge_plus,
+                  color: CupertinoColors.systemBlue,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '담당자 할당',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '[${entity.source}] ${entity.code ?? ""}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey5.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.xmark,
+                      size: 16,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 유저 목록
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.4,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                final statusColor = _getStatusColor(user.status);
+                final canAssign = user.status != UserStatus.offline;
+
+                return InkWell(
+                  onTap: canAssign ? () => onAssign(user) : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: CupertinoColors.separator.resolveFrom(context).withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // 상태 표시 원
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // 유저 정보
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: canAssign
+                                      ? CupertinoColors.label.resolveFrom(context)
+                                      : CupertinoColors.tertiaryLabel.resolveFrom(context),
+                                ),
+                              ),
+                              Text(
+                                user.email,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 상태 뱃지
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            user.status.label,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                        if (canAssign) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            CupertinoIcons.chevron_right,
+                            size: 16,
+                            color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // 안내 문구
+          Container(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              '오프라인 상태인 팀원에게는 할당할 수 없습니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

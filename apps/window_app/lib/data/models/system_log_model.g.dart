@@ -36,6 +36,8 @@ _SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['response_started_at'] as String),
       organizationId: json['organization_id'] as String?,
+      assignedById: json['assigned_by_id'] as String?,
+      assignedByName: json['assigned_by_name'] as String?,
     );
 
 Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
@@ -54,6 +56,8 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'current_responder_name': instance.currentResponderName,
       'response_started_at': instance.responseStartedAt?.toIso8601String(),
       'organization_id': instance.organizationId,
+      'assigned_by_id': instance.assignedById,
+      'assigned_by_name': instance.assignedByName,
     };
 
 const _$LogCategoryEnumMap = {

@@ -27,6 +27,25 @@ class ResponseRepositoryImpl implements ResponseRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> assignResponse({
+    required String eventLogId,
+    required String assigneeId,
+    required String assigneeName,
+    required String assignerId,
+    required String assignerName,
+  }) async {
+    logger.d('Repository: 대응 할당 - eventLogId=$eventLogId, assigneeId=$assigneeId');
+
+    return await _remoteDatasource.assign(
+      eventLogId: eventLogId,
+      assigneeId: assigneeId,
+      assigneeName: assigneeName,
+      assignerId: assignerId,
+      assignerName: assignerName,
+    );
+  }
+
+  @override
   Future<void> cancelResponse({
     required String eventLogId,
     required String userId,

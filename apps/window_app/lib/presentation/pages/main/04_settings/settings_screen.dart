@@ -6,6 +6,7 @@ import 'package:window_app/data/models/notification_settings.dart';
 import 'package:window_app/domain/services/app_updater_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/presentation/layout/base_page.dart';
+import 'package:window_app/presentation/widgets/admin_label.dart';
 
 class SettingsScreen extends BasePage {
   const SettingsScreen({super.key});
@@ -16,7 +17,7 @@ class SettingsScreen extends BasePage {
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context, WidgetRef ref) {
     return AppBar(
-      title: const Text('설정'),
+      title: const AppBarTitleWithLabel(title: '설정'),
       backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
       elevation: 0,
       actions: [

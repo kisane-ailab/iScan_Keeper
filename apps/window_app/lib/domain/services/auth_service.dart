@@ -29,7 +29,14 @@ class AuthService extends _$AuthService {
     // 인증 상태 변화 구독
     final subscription = _client.auth.onAuthStateChange.listen((data) {
       final user = data.session?.user;
-      logger.d('인증 상태 변경: ${user?.email ?? "로그아웃"}');
+      final event = data.event;
+      logger.d('인증 상태 변경: $event - ${user?.email ?? "로그아웃"}');
+
+      // 세션이 있으면 온라인으로 설정
+      if (user != null) {
+        _setUserOnline(user.id);
+      }
+
       state = AuthState(isLoading: false, user: user);
     });
 
@@ -37,22 +44,21 @@ class AuthService extends _$AuthService {
       subscription.cancel();
     });
 
-    // 현재 세션 확인 (저장된 세션 복원)
-    _initializeAuth();
-
     // 초기 상태는 로딩 중
     return const AuthState(isLoading: true);
   }
 
-  /// 저장된 세션 복원
-  Future<void> _initializeAuth() async {
-    // Supabase가 저장된 세션을 자동으로 복원할 때까지 잠시 대기
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    final currentUser = _client.auth.currentUser;
-    logger.i('세션 복원 완료: ${currentUser?.email ?? "없음"}');
-
-    state = AuthState(isLoading: false, user: currentUser);
+  /// 사용자를 온라인 상태로 설정
+  Future<void> _setUserOnline(String userId) async {
+    try {
+      await _client.from('users').update({
+        'status': 'online',
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+      logger.i('사용자 상태 online으로 변경: $userId');
+    } catch (e) {
+      logger.e('사용자 상태 변경 실패', error: e);
+    }
   }
 
   /// 현재 로그인 여부
@@ -107,7 +113,7 @@ class AuthService extends _$AuthService {
   }) async {
     logger.i('로그인 시도: $email');
 
-    return TaskEither<AuthFailure, AuthResponse>.tryCatch(
+    return TaskEither<AuthFailure, Unit>.tryCatch(
       () async {
         final response = await _client.auth.signInWithPassword(
           email: email,
@@ -118,24 +124,12 @@ class AuthService extends _$AuthService {
           throw Exception('로그인 응답 없음');
         }
 
-        return response;
+        // onAuthStateChange에서 online 상태 설정됨
+        logger.i('로그인 완료: ${response.user!.id}');
+        return unit;
       },
       _handleAuthError,
-    )
-        .flatMap((response) => TaskEither.tryCatch(
-              () async {
-                // 로그인 시 상태를 available로 변경
-                await _client.from('users').update({
-                  'status': 'available',
-                  'updated_at': DateTime.now().toIso8601String(),
-                }).eq('id', response.user!.id);
-
-                logger.i('로그인 완료: ${response.user!.id}');
-                return unit;
-              },
-              _handleAuthError,
-            ))
-        .run();
+    ).run();
   }
 
   /// 로그아웃
