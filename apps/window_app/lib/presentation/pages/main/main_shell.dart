@@ -158,6 +158,11 @@ class MainShell extends BaseShell {
         selectedIcon: CupertinoIcons.gear_alt_fill,
         label: '설정',
       ),
+      const _CupertinoNavDestination(
+        icon: CupertinoIcons.bell_slash,
+        selectedIcon: CupertinoIcons.bell_slash_fill,
+        label: '숨긴 알림',
+      ),
     ];
   }
 }

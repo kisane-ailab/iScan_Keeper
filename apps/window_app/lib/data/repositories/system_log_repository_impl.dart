@@ -61,6 +61,11 @@ class SystemLogRepositoryImpl implements SystemLogRepository {
   Future<Map<String, dynamic>> setLogMuted(String id, bool muted) async {
     return await _remoteDatasource.setLogMuted(id, muted);
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100}) async {
+    return await _remoteDatasource.getMutedLogs(limit: limit);
+  }
 }
 
 /// SystemLogRepository Provider

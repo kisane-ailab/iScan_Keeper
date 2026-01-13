@@ -35,6 +35,9 @@ abstract class SystemLogRemoteDatasource {
 
   /// 시스템 로그 알림 무시 설정/해제
   Future<Map<String, dynamic>> setLogMuted(String id, bool muted);
+
+  /// 숨긴(muted) 로그 목록 조회
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100});
 }
 
 /// SystemLog Remote DataSource 구현체
@@ -147,6 +150,21 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
 
     logger.i('시스템 로그 mute 설정 완료: ${result['id']}, is_muted=${result['is_muted']}');
     return result;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100}) async {
+    logger.d('숨긴 로그 목록 조회');
+
+    final result = await _client
+        .from('system_logs')
+        .select()
+        .eq('is_muted', true)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    logger.i('숨긴 로그 ${result.length}건 조회 완료');
+    return List<Map<String, dynamic>>.from(result);
   }
 }
 

@@ -28,4 +28,7 @@ abstract class SystemLogRepository {
 
   /// 시스템 로그 알림 무시 설정/해제
   Future<Map<String, dynamic>> setLogMuted(String id, bool muted);
+
+  /// 숨긴(muted) 로그 목록 조회
+  Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100});
 }
