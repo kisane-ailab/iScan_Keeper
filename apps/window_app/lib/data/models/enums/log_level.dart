@@ -4,7 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 enum LogLevel {
   info('info', '정보'),
   warning('warning', '경고'),
-  error('error', '에러'),
+  error('error', '오류'),
   critical('critical', '심각');
 
   const LogLevel(this.value, this.label);
