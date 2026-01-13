@@ -178,6 +178,11 @@ class MainShell extends BaseShell {
         selectedIcon: CupertinoIcons.gear_alt_fill,
         label: '설정',
       ),
+      const _CupertinoNavDestination(
+        icon: CupertinoIcons.doc_text,
+        selectedIcon: CupertinoIcons.doc_text_fill,
+        label: 'API 문서',
+      ),
       // 숨긴 알림 (관리자 전용)
       if (isAdmin)
         const _CupertinoNavDestination(

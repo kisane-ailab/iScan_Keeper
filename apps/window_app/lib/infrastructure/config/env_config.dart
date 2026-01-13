@@ -19,6 +19,9 @@ abstract class EnvConfig {
   @EnviedField(varName: 'SUPABASE_ANON_KEY')
   static const String supabaseAnonKey = _EnvConfig.supabaseAnonKey;
 
+  @EnviedField(varName: 'SWAGGER_URL', defaultValue: 'http://localhost:8000/docs')
+  static const String swaggerUrl = _EnvConfig.swaggerUrl;
+
   // GitHub Configuration (for auto-update)
   @EnviedField(varName: 'GITHUB_OWNER', defaultValue: 'kisane')
   static const String githubOwner = _EnvConfig.githubOwner;

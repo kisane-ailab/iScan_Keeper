@@ -1186,7 +1186,7 @@ class _AssignBottomSheet extends StatelessWidget {
   }
 }
 
-/// 긴급 알림 배너 (실시간 경과시간 표시, 스크롤 가능)
+/// 긴급 알림 배너 (실시간 경과시간 표시, 스크롤 가능, 투명도/크기 조절)
 class _CriticalAlertBanner extends HookWidget {
   const _CriticalAlertBanner({
     required this.entities,
@@ -1195,6 +1195,10 @@ class _CriticalAlertBanner extends HookWidget {
 
   final List<SystemLogEntity> entities;
   final void Function(SystemLogEntity) onRespond;
+
+  static const double _minHeight = 120.0;
+  static const double _maxHeight = 400.0;
+  static const double _defaultHeight = 180.0;
 
   @override
   Widget build(BuildContext context) {
@@ -1207,191 +1211,267 @@ class _CriticalAlertBanner extends HookWidget {
       return timer.cancel;
     }, []);
 
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFDC143C),
-            const Color(0xFFB91C3C),
+    // 배너 높이 상태
+    final bannerHeight = useState(_defaultHeight);
+    // 투명도 상태
+    final opacity = useState(1.0);
+    // 설정 패널 표시 여부
+    final showSettings = useState(false);
+
+    return Opacity(
+      opacity: opacity.value,
+      child: Container(
+        width: double.infinity,
+        height: bannerHeight.value,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFDC143C),
+              const Color(0xFFB91C3C),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFDC143C).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFDC143C).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 헤더 (고정)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.exclamationmark_triangle_fill,
-                    color: CupertinoColors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '긴급 알림 ${entities.length}건',
-                  style: const TextStyle(
-                    color: CupertinoColors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    '대응 필요',
-                    style: TextStyle(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 헤더 (고정)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.exclamationmark_triangle_fill,
                       color: CupertinoColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      size: 20,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // 알림 목록 (스크롤 가능, 흰색 스크롤바)
-          Flexible(
-            child: RawScrollbar(
-              thumbColor: CupertinoColors.white.withValues(alpha: 0.6),
-              radius: const Radius.circular(4),
-              thickness: 4,
-              thumbVisibility: true,
-              padding: const EdgeInsets.only(right: 4),
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                itemCount: entities.length,
-                itemBuilder: (context, index) {
-                  final entity = entities[index];
-                  return SelectionArea(
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 12),
+                  Text(
+                    '긴급 알림 ${entities.length}건',
+                    style: const TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Spacer(),
+                  // 투명도 슬라이더 (설정 패널 열림 시)
+                  if (showSettings.value) ...[
+                    Icon(
+                      CupertinoIcons.sun_min,
+                      color: CupertinoColors.white.withValues(alpha: 0.7),
+                      size: 14,
+                    ),
+                    SizedBox(
+                      width: 100,
+                      child: CupertinoSlider(
+                        value: opacity.value,
+                        min: 0.3,
+                        max: 1.0,
+                        activeColor: CupertinoColors.white,
+                        onChanged: (value) => opacity.value = value,
                       ),
-                      child: Row(
-                      children: [
-                        // 번호 뱃지
-                        Container(
-                          width: 26,
-                          height: 26,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: CupertinoColors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  // 설정 토글 버튼
+                  GestureDetector(
+                    onTap: () => showSettings.value = !showSettings.value,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: showSettings.value
+                            ? CupertinoColors.white.withValues(alpha: 0.3)
+                            : CupertinoColors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        showSettings.value
+                            ? CupertinoIcons.xmark
+                            : CupertinoIcons.slider_horizontal_3,
+                        color: CupertinoColors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '대응 필요',
+                      style: TextStyle(
+                        color: CupertinoColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 알림 목록 (스크롤 가능, 흰색 스크롤바)
+            Expanded(
+              child: RawScrollbar(
+                thumbColor: CupertinoColors.white.withValues(alpha: 0.6),
+                radius: const Radius.circular(4),
+                thickness: 4,
+                thumbVisibility: true,
+                padding: const EdgeInsets.only(right: 4),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  itemCount: entities.length,
+                  itemBuilder: (context, index) {
+                    final entity = entities[index];
+                    return SelectionArea(
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        // 소스 & 코드
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '[${entity.source}]',
+                        child: Row(
+                        children: [
+                          // 번호 뱃지
+                          Container(
+                            width: 26,
+                            height: 26,
+                            margin: const EdgeInsets.only(right: 10),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
                                 style: const TextStyle(
                                   color: CupertinoColors.white,
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              if (entity.code != null)
+                            ),
+                          ),
+                          // 소스 & 코드
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  entity.code!,
-                                  style: TextStyle(
-                                    color: CupertinoColors.white.withValues(alpha: 0.8),
-                                    fontSize: 11,
+                                  '[${entity.source}]',
+                                  style: const TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                            ],
+                                if (entity.code != null)
+                                  Text(
+                                    entity.code!,
+                                    style: TextStyle(
+                                      color: CupertinoColors.white.withValues(alpha: 0.8),
+                                      fontSize: 11,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        // 경과 시간 타이머 (slide_countdown)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white.withValues(alpha: 0.2),
+                          // 경과 시간 타이머
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: CupertinoColors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              entity.formattedCreatedElapsedTime,
+                              style: const TextStyle(
+                                color: CupertinoColors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // 대응 버튼
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            color: CupertinoColors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: CupertinoColors.white.withValues(alpha: 0.3),
+                            minSize: 0,
+                            onPressed: () => onRespond(entity),
+                            child: const Text(
+                              '대응',
+                              style: TextStyle(
+                                color: Color(0xFFDC143C),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            entity.formattedCreatedElapsedTime,
-                            style: const TextStyle(
-                              color: CupertinoColors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // 대응 버튼
-                        CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          color: CupertinoColors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          minSize: 0,
-                          onPressed: () => onRespond(entity),
-                          child: const Text(
-                            '대응',
-                            style: TextStyle(
-                              color: Color(0xFFDC143C),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+            // 리사이즈 핸들
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                final newHeight = bannerHeight.value + details.delta.dy;
+                bannerHeight.value = newHeight.clamp(_minHeight, _maxHeight);
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeRow,
+                child: Container(
+                  width: double.infinity,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.white.withValues(alpha: 0.1),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
