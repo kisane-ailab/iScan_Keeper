@@ -26,4 +26,7 @@ final class _EnvConfig {
   static const String githubOwner = 'kisane-ailab';
 
   static const String githubRepo = 'iScan_Keeper';
+
+  static const String telegramBotToken =
+      '7522648066:AAGjwQBys6Arqv8_xB462tea2OvhQxla57M';
 }

@@ -28,4 +28,8 @@ abstract class EnvConfig {
 
   @EnviedField(varName: 'GITHUB_REPO', defaultValue: 'iScan_Keeper')
   static const String githubRepo = _EnvConfig.githubRepo;
+
+  // Telegram Configuration
+  @EnviedField(varName: 'TELEGRAM_BOT_TOKEN')
+  static const String telegramBotToken = _EnvConfig.telegramBotToken;
 }
