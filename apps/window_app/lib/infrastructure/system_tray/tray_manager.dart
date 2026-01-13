@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_manager/window_manager.dart';
@@ -126,6 +127,21 @@ class AppTrayManager with TrayListener {
   }
 
   static Future<void> exitApp() async {
+    // 앱 종료 전 사용자 상태를 offline으로 변경
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId != null) {
+        await client.from('users').update({
+          'status': 'offline',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+        logger.i('앱 종료: 사용자 상태 offline으로 변경');
+      }
+    } catch (e) {
+      logger.e('앱 종료 시 상태 변경 실패', error: e);
+    }
+
     await trayManager.destroy();
     exit(0);
   }

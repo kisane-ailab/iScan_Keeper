@@ -4,8 +4,7 @@ import 'package:json_annotation/json_annotation.dart';
 /// DB의 user_status와 매핑
 @JsonEnum(valueField: 'value')
 enum UserStatus {
-  available('available', '대기중'),
-  busy('busy', '대응중'),
+  online('online', '온라인'),
   offline('offline', '오프라인');
 
   const UserStatus(this.value, this.label);
@@ -13,11 +12,8 @@ enum UserStatus {
   final String value;
   final String label;
 
-  /// 대기중인지
-  bool get isAvailable => this == UserStatus.available;
-
-  /// 대응중인지
-  bool get isBusy => this == UserStatus.busy;
+  /// 온라인인지
+  bool get isOnline => this == UserStatus.online;
 
   /// 오프라인인지
   bool get isOffline => this == UserStatus.offline;

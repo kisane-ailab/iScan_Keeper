@@ -14,6 +14,15 @@ abstract class ResponseRemoteDatasource {
     required String userName,
   });
 
+  /// 대응 할당 (관리자가 특정 유저에게 배정)
+  Future<Map<String, dynamic>> assign({
+    required String eventLogId,
+    required String assigneeId,
+    required String assigneeName,
+    required String assignerId,
+    required String assignerName,
+  });
+
   /// 대응 취소 (포기)
   Future<void> cancel({
     required String eventLogId,
@@ -79,6 +88,57 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
     }).eq('id', eventLogId);
 
     logger.i('대응 시작 완료: ${responseLog['id']}');
+    return responseLog;
+  }
+
+  @override
+  Future<Map<String, dynamic>> assign({
+    required String eventLogId,
+    required String assigneeId,
+    required String assigneeName,
+    required String assignerId,
+    required String assignerName,
+  }) async {
+    logger.d('대응 할당 요청: eventLogId=$eventLogId, assigneeId=$assigneeId, assignerId=$assignerId');
+
+    // 이미 대응 중인지 확인
+    final existingLog = await _client
+        .from('system_logs')
+        .select('response_status, current_responder_id')
+        .eq('id', eventLogId)
+        .single();
+
+    if (existingLog['response_status'] == 'completed') {
+      throw Exception('이미 완료된 로그입니다');
+    }
+
+    // 기존 대응 중인 경우, 기존 response_log 삭제
+    if (existingLog['response_status'] == 'in_progress') {
+      await _client
+          .from('response_logs')
+          .delete()
+          .eq('system_log_id', eventLogId)
+          .isFilter('completed_at', null);
+    }
+
+    // response_logs 생성 (할당자 정보 포함)
+    final responseLog = await _client.from('response_logs').insert({
+      'system_log_id': eventLogId,
+      'user_id': assigneeId,
+      'started_at': DateTime.now().toIso8601String(),
+    }).select().single();
+
+    // system_logs 업데이트 (할당자 정보 포함)
+    await _client.from('system_logs').update({
+      'response_status': 'in_progress',
+      'current_responder_id': assigneeId,
+      'current_responder_name': assigneeName,
+      'response_started_at': DateTime.now().toIso8601String(),
+      'assigned_by_id': assignerId,
+      'assigned_by_name': assignerName,
+    }).eq('id', eventLogId);
+
+    logger.i('대응 할당 완료: ${responseLog['id']} → $assigneeName (할당자: $assignerName)');
     return responseLog;
   }
 

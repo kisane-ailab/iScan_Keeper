@@ -26,6 +26,11 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getUsersByOrganization(String organizationId) async {
+    return await _remoteDatasource.getUsersByOrganization(organizationId);
+  }
+
+  @override
   Future<Map<String, dynamic>> updateStatus({
     required String userId,
     required String status,

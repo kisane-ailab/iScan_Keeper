@@ -16,6 +16,9 @@ abstract class UserRemoteDatasource {
   /// 대기중인 사용자 목록
   Future<List<Map<String, dynamic>>> getAvailableUsers();
 
+  /// 같은 조직 사용자 목록 조회
+  Future<List<Map<String, dynamic>>> getUsersByOrganization(String organizationId);
+
   /// 사용자 상태 변경
   Future<Map<String, dynamic>> updateStatus({
     required String userId,
@@ -65,6 +68,21 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
         .eq('status', 'available')
         .order('name');
 
+    return List<Map<String, dynamic>>.from(result);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUsersByOrganization(String organizationId) async {
+    logger.d('조직별 사용자 조회: organizationId=$organizationId');
+
+    final result = await _client
+        .from('users')
+        .select()
+        .eq('organization_id', organizationId)
+        .order('status') // available > busy > offline 순
+        .order('name');
+
+    logger.i('조직별 사용자 조회 완료: ${result.length}명');
     return List<Map<String, dynamic>>.from(result);
   }
 

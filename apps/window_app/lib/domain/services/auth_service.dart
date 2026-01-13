@@ -52,6 +52,19 @@ class AuthService extends _$AuthService {
     final currentUser = _client.auth.currentUser;
     logger.i('세션 복원 완료: ${currentUser?.email ?? "없음"}');
 
+    // 로그인 상태면 online으로 변경
+    if (currentUser != null) {
+      try {
+        await _client.from('users').update({
+          'status': 'online',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', currentUser.id);
+        logger.i('사용자 상태 online으로 변경: ${currentUser.id}');
+      } catch (e) {
+        logger.e('사용자 상태 변경 실패', error: e);
+      }
+    }
+
     state = AuthState(isLoading: false, user: currentUser);
   }
 
@@ -124,9 +137,9 @@ class AuthService extends _$AuthService {
     )
         .flatMap((response) => TaskEither.tryCatch(
               () async {
-                // 로그인 시 상태를 available로 변경
+                // 로그인 시 상태를 online으로 변경
                 await _client.from('users').update({
-                  'status': 'available',
+                  'status': 'online',
                   'updated_at': DateTime.now().toIso8601String(),
                 }).eq('id', response.user!.id);
 

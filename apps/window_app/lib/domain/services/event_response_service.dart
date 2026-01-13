@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:window_app/data/models/notification_settings.dart';
+import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/data/repositories/response_repository_impl.dart';
 import 'package:window_app/data/repositories/user_repository_impl.dart';
 import 'package:window_app/domain/entities/system_log_entity.dart';
@@ -10,6 +11,37 @@ import 'package:window_app/infrastructure/logger/app_logger.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 
 part 'event_response_service.g.dart';
+
+/// 현재 로그인한 사용자의 상세 정보 Provider
+@riverpod
+Future<UserModel?> currentUserDetail(Ref ref) async {
+  final authState = ref.watch(authServiceProvider);
+  final userId = authState.user?.id;
+  if (userId == null) return null;
+
+  final userRepository = ref.watch(userRepositoryProvider);
+  final userData = await userRepository.getUser(userId);
+  if (userData == null) return null;
+
+  return UserModel.fromJson(userData);
+}
+
+/// 같은 조직 사용자 목록 Provider
+@riverpod
+Future<List<UserModel>> organizationUsers(Ref ref) async {
+  final currentUser = await ref.watch(currentUserDetailProvider.future);
+  if (currentUser == null || currentUser.organizationId == null) {
+    return [];
+  }
+
+  final userRepository = ref.watch(userRepositoryProvider);
+  final users = await userRepository.getUsersByOrganization(currentUser.organizationId!);
+
+  return users
+      .map((json) => UserModel.fromJson(json))
+      .where((user) => user.id != currentUser.id) // 자기 자신 제외
+      .toList();
+}
 
 @Riverpod(keepAlive: true)
 class EventResponseService extends _$EventResponseService {
@@ -152,5 +184,49 @@ class EventResponseService extends _$EventResponseService {
   /// 현재 내가 대응 중인지 확인
   bool isMyResponse(String systemLogId) {
     return state.contains(systemLogId);
+  }
+
+  /// 대응 할당 (관리자 전용)
+  Future<bool> assignResponse(SystemLogEntity entity, UserModel assignee) async {
+    try {
+      final userInfo = await _getCurrentUserInfo();
+
+      if (userInfo == null) {
+        logger.e('대응 할당 실패: 로그인 필요');
+        return false;
+      }
+
+      final assignerId = userInfo['id'] as String;
+      final assignerName = userInfo['name'] as String;
+      final assignerRole = userInfo['role'] as String?;
+
+      // 관리자 권한 확인
+      if (assignerRole != 'admin' && assignerRole != 'manager') {
+        logger.w('대응 할당 실패: 관리자 권한 필요');
+        return false;
+      }
+
+      // 이미 완료된 경우
+      if (entity.isCompleted) {
+        logger.w('이미 완료된 로그입니다');
+        return false;
+      }
+
+      // Repository를 통해 대응 할당
+      final responseRepository = ref.read(responseRepositoryProvider);
+      await responseRepository.assignResponse(
+        eventLogId: entity.id,
+        assigneeId: assignee.id,
+        assigneeName: assignee.name,
+        assignerId: assignerId,
+        assignerName: assignerName,
+      );
+
+      logger.i('대응 할당 완료: ${entity.id} → ${assignee.name}');
+      return true;
+    } catch (e) {
+      logger.e('대응 할당 실패', error: e);
+      return false;
+    }
   }
 }

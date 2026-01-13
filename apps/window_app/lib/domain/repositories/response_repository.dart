@@ -7,6 +7,15 @@ abstract class ResponseRepository {
     required String userName,
   });
 
+  /// 대응 할당 (관리자가 특정 유저에게 배정)
+  Future<Map<String, dynamic>> assignResponse({
+    required String eventLogId,
+    required String assigneeId,
+    required String assigneeName,
+    required String assignerId,
+    required String assignerName,
+  });
+
   /// 대응 취소 (포기)
   Future<void> cancelResponse({
     required String eventLogId,

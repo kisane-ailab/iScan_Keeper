@@ -23,6 +23,8 @@ class SystemLogEntity {
   final String? currentResponderName;
   final DateTime? _responseStartedAtUtc;
   final String? organizationId;
+  final String? assignedById;
+  final String? assignedByName;
 
   SystemLogEntity({
     required this.id,
@@ -39,6 +41,8 @@ class SystemLogEntity {
     this.currentResponderName,
     DateTime? responseStartedAt,
     this.organizationId,
+    this.assignedById,
+    this.assignedByName,
   })  : _createdAtUtc = createdAt,
         _responseStartedAtUtc = responseStartedAt;
 
@@ -59,6 +63,8 @@ class SystemLogEntity {
       currentResponderName: model.currentResponderName,
       responseStartedAt: model.responseStartedAt,
       organizationId: model.organizationId,
+      assignedById: model.assignedById,
+      assignedByName: model.assignedByName,
     );
   }
 
@@ -174,6 +180,12 @@ class SystemLogEntity {
   /// critical이고 미확인인지
   bool get isCriticalUnchecked =>
       logLevel == LogLevel.critical && responseStatus == ResponseStatus.unresponded;
+
+  /// 할당된 건인지 (관리자가 할당)
+  bool get isAssigned => assignedById != null;
+
+  /// 자원한 건인지 (본인이 대응 시작)
+  bool get isVolunteered => isBeingResponded && assignedById == null;
 
   /// 이슈 정보 요약 문자열 (알림용)
   String get issueInfo {

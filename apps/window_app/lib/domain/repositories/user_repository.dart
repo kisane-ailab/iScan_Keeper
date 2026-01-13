@@ -9,6 +9,9 @@ abstract class UserRepository {
   /// 대기중인 사용자 목록
   Future<List<Map<String, dynamic>>> getAvailableUsers();
 
+  /// 같은 조직 사용자 목록 조회
+  Future<List<Map<String, dynamic>>> getUsersByOrganization(String organizationId);
+
   /// 사용자 상태 변경
   Future<Map<String, dynamic>> updateStatus({
     required String userId,

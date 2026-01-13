@@ -141,4 +141,25 @@ class NotificationHandler {
     await notification.show();
     logger.w('대응 포기 알림: $abandonedByName → ${entity.source}');
   }
+
+  /// 이슈 할당 알림 (관리자가 나에게 할당했을 때)
+  static Future<void> showAssigned({
+    required SystemLogEntity entity,
+    required String assignedByName,
+  }) async {
+    final notification = LocalNotification(
+      identifier: '${entity.id}_assigned',
+      title: '📌 이슈가 할당되었습니다',
+      body: '$assignedByName님이 [${entity.source}] 이슈를 할당했습니다\n${entity.logLevel.label} | ${entity.formattedCreatedAt}',
+    );
+
+    notification.onClick = () {
+      AppTrayManager.showWindow();
+    };
+
+    await notification.show();
+    // 할당 알림은 앱을 전면으로 표시
+    await AppTrayManager.showWindow();
+    logger.i('이슈 할당 알림: $assignedByName → ${entity.currentResponderName} (${entity.source})');
+  }
 }
