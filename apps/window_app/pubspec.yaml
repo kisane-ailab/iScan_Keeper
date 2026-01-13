@@ -68,6 +68,9 @@ dependencies:
   # Timer/Countdown
   slide_countdown: ^2.0.1
 
+  # Breadcrumb
+  flutter_breadcrumb: ^1.0.1
+
   # Environment
   envied: ^1.1.1
 

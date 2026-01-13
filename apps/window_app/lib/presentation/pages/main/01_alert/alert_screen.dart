@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
@@ -10,6 +12,7 @@ import 'package:window_app/domain/entities/system_log_entity.dart';
 import 'package:window_app/domain/services/auth_service.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
 import 'package:window_app/domain/services/notification_settings_service.dart';
+import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 
@@ -22,6 +25,7 @@ class AlertScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(alertViewModelProvider);
+    final viewModel = ref.read(alertViewModelProvider.notifier);
     final tabController = useTabController(initialLength: 2);
 
     return Scaffold(
@@ -115,16 +119,452 @@ class AlertScreen extends HookConsumerWidget {
           // 운영 탭
           _AlertTabContent(
             logs: state.productionLogs,
+            state: state,
+            viewModel: viewModel,
             emptyMessage: '운영중 이벤트 대기 중...',
             emptyIcon: CupertinoIcons.checkmark_shield,
+            isProduction: true,
           ),
           // 개발중 탭
           _AlertTabContent(
             logs: state.developmentLogs,
+            state: state,
+            viewModel: viewModel,
             emptyMessage: '개발중 이벤트 대기 중...',
             emptyIcon: CupertinoIcons.hammer,
+            isProduction: false,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 필터 섹션 (Breadcrumb + 로그레벨 + 기간)
+class _FilterSection extends StatelessWidget {
+  const _FilterSection({
+    required this.state,
+    required this.viewModel,
+  });
+
+  final AlertState state;
+  final AlertViewModel viewModel;
+
+  Color _getLevelColor(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return const Color(0xFFDC143C);
+      case LogLevel.error:
+        return CupertinoColors.systemOrange;
+      case LogLevel.warning:
+        return const Color(0xFFFFCC00);
+      case LogLevel.info:
+        return CupertinoColors.systemBlue;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _showDatePicker(BuildContext context, bool isStartDate) async {
+    final initialDate = isStartDate ? state.startDate : state.endDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      helpText: isStartDate ? '시작일 선택' : '종료일 선택',
+      cancelText: '취소',
+      confirmText: '선택',
+    );
+
+    if (picked != null) {
+      if (isStartDate) {
+        viewModel.setStartDate(picked);
+      } else {
+        viewModel.setEndDate(picked);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          // 로그레벨 다중 선택 칩
+          ...LogLevel.values.map((level) {
+            final isSelected = state.selectedLogLevels.contains(level);
+            final color = _getLevelColor(level);
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: GestureDetector(
+                onTap: () => viewModel.toggleLogLevel(level),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? color.withValues(alpha: 0.15) : CupertinoColors.systemGrey6.resolveFrom(context),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
+                    ),
+                  ),
+                  child: Text(
+                    level.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? color : CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          // 구분선
+          Container(
+            width: 1,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
+          const SizedBox(width: 8),
+          // 시작일
+          GestureDetector(
+            onTap: () => _showDatePicker(context, true),
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 76),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: state.startDate != null
+                    ? CupertinoColors.systemBlue.withValues(alpha: 0.1)
+                    : CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: state.startDate != null ? CupertinoColors.systemBlue.withValues(alpha: 0.3) : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.startDate != null ? _formatDate(state.startDate!) : '시작일',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: state.startDate != null ? FontWeight.w600 : FontWeight.w500,
+                      color: state.startDate != null
+                          ? CupertinoColors.systemBlue
+                          : CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                  if (state.startDate != null) ...[
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => viewModel.setStartDate(null),
+                      child: const Icon(
+                        CupertinoIcons.xmark_circle_fill,
+                        size: 14,
+                        color: CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Center(
+              child: Text(
+                '~',
+                style: TextStyle(
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+              ),
+            ),
+          ),
+          // 종료일
+          GestureDetector(
+            onTap: () => _showDatePicker(context, false),
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 76),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: state.endDate != null
+                    ? CupertinoColors.systemBlue.withValues(alpha: 0.1)
+                    : CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: state.endDate != null ? CupertinoColors.systemBlue.withValues(alpha: 0.3) : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.endDate != null ? _formatDate(state.endDate!) : '종료일',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: state.endDate != null ? FontWeight.w600 : FontWeight.w500,
+                      color: state.endDate != null
+                          ? CupertinoColors.systemBlue
+                          : CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                  if (state.endDate != null) ...[
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => viewModel.setEndDate(null),
+                      child: const Icon(
+                        CupertinoIcons.xmark_circle_fill,
+                        size: 14,
+                        color: CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 구분선
+          Container(
+            width: 1,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
+          const SizedBox(width: 8),
+          // Breadcrumb (Source > Code) - 맨 뒤로
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey6.resolveFrom(context),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: BreadCrumb(
+              items: _buildBreadcrumbItems(context),
+              divider: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  CupertinoIcons.chevron_right,
+                  size: 12,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+              ),
+              overflow: ScrollableOverflow(
+                keepLastDivider: false,
+                direction: Axis.horizontal,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  List<BreadCrumbItem> _buildBreadcrumbItems(BuildContext context) {
+    final items = <BreadCrumbItem>[];
+
+    // Source 선택 (전체 포함)
+    items.add(BreadCrumbItem(
+      content: _BreadcrumbChip(
+        label: state.selectedSource ?? '전체',
+        icon: CupertinoIcons.device_desktop,
+        isSelected: state.selectedSource != null,
+        items: state.availableSources,
+        selectedValue: state.selectedSource,
+        onSelected: viewModel.setSourceFilter,
+      ),
+    ));
+
+    // Code 선택 (Source 선택 시에만 표시)
+    if (state.selectedSource != null) {
+      items.add(BreadCrumbItem(
+        content: _BreadcrumbChip(
+          label: state.selectedCode ?? '전체',
+          icon: CupertinoIcons.tag,
+          isSelected: state.selectedCode != null,
+          items: state.availableCodes,
+          selectedValue: state.selectedCode,
+          onSelected: viewModel.setCodeFilter,
+        ),
+      ));
+    }
+
+    return items;
+  }
+}
+
+/// Breadcrumb 칩 위젯 (PopupMenu 포함)
+class _BreadcrumbChip extends StatelessWidget {
+  const _BreadcrumbChip({
+    required this.label,
+    this.icon,
+    required this.isSelected,
+    required this.items,
+    this.selectedValue,
+    required this.onSelected,
+  });
+
+  static const String _allValue = '__all__';
+
+  final String label;
+  final IconData? icon;
+  final bool isSelected;
+  final List<String> items;
+  final String? selectedValue;
+  final ValueChanged<String?> onSelected;
+
+  void _showContextMenu(BuildContext context, Offset position) {
+    // 선택된 값이 없으면 복사할 내용 없음
+    if (selectedValue == null) return;
+
+    // async gap 전에 ScaffoldMessenger 캡처
+    final messenger = ScaffoldMessenger.of(context);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: CupertinoColors.systemBackground.resolveFrom(context),
+      elevation: 4,
+      items: [
+        PopupMenuItem<String>(
+          value: 'copy',
+          height: 36,
+          child: const Row(
+            children: [
+              Icon(CupertinoIcons.doc_on_clipboard, size: 14),
+              SizedBox(width: 8),
+              Text('복사', style: TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'copy' && selectedValue != null) {
+        Clipboard.setData(ClipboardData(text: selectedValue!));
+        messenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  CupertinoIcons.checkmark_circle_fill,
+                  color: CupertinoColors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text('\'$selectedValue\' 복사됨'),
+              ],
+            ),
+            backgroundColor: CupertinoColors.systemGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected
+        ? CupertinoColors.systemBlue
+        : CupertinoColors.label.resolveFrom(context);
+
+    return GestureDetector(
+      onSecondaryTapUp: (details) => _showContextMenu(context, details.globalPosition),
+      child: PopupMenuButton<String>(
+        onSelected: (value) => onSelected(value == _allValue ? null : value),
+        offset: const Offset(0, 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        elevation: 4,
+        itemBuilder: (context) => [
+          PopupMenuItem<String>(
+            value: _allValue,
+            height: 36,
+            child: Row(
+              children: [
+                if (selectedValue == null)
+                  const Icon(CupertinoIcons.checkmark, size: 14, color: CupertinoColors.systemBlue)
+                else
+                  const SizedBox(width: 14),
+                const SizedBox(width: 8),
+                const Text('전체', style: TextStyle(fontSize: 13)),
+              ],
+            ),
+          ),
+          ...items.map((item) => PopupMenuItem<String>(
+            value: item,
+            height: 36,
+            child: Row(
+              children: [
+                if (selectedValue == item)
+                  const Icon(CupertinoIcons.checkmark, size: 14, color: CupertinoColors.systemBlue)
+                else
+                  const SizedBox(width: 14),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? CupertinoColors.systemBlue.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 12, color: color),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                CupertinoIcons.chevron_down,
+                size: 10,
+                color: color,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -169,21 +609,34 @@ class _CupertinoBadge extends StatelessWidget {
 class _AlertTabContent extends HookConsumerWidget {
   const _AlertTabContent({
     required this.logs,
+    required this.state,
+    required this.viewModel,
     required this.emptyMessage,
     required this.emptyIcon,
+    required this.isProduction,
   });
 
   final List<SystemLogEntity> logs;
+  final AlertState state;
+  final AlertViewModel viewModel;
   final String emptyMessage;
   final IconData emptyIcon;
+  final bool isProduction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAlwaysOnTop = ref.watch(alwaysOnTopStateProvider);
     final settings = ref.watch(notificationSettingsServiceProvider);
 
-    // 항상위 모드가 필요한 미대응 로그 찾기 (설정 기반 - 환경별)
-    final alwaysOnTopLogs = logs.where((entity) {
+    // 전체 로그에서 필터 상관없이 긴급 알림 가져오기
+    final allLogs = ref.watch(systemLogRealtimeServiceProvider);
+    final allEventLogs = allLogs.where((e) => e.isEvent).toList();
+    final environmentLogs = allEventLogs.where((e) =>
+      isProduction ? e.isProduction : e.isDevelopment
+    ).toList();
+
+    // 항상위 모드가 필요한 미대응 로그 찾기 (필터 적용 전 전체 기준)
+    final alwaysOnTopLogs = environmentLogs.where((entity) {
       if (!entity.isUnchecked) return false;
       final action = settings.getActionForLevel(
         entity.logLevel,
@@ -194,6 +647,12 @@ class _AlertTabContent extends HookConsumerWidget {
 
     return Column(
       children: [
+        // 필터 영역
+        _FilterSection(
+          state: state,
+          viewModel: viewModel,
+        ),
+
         // 항상 위 모드 배너 (항상위 필요 로그가 있을 때)
         if (isAlwaysOnTop && alwaysOnTopLogs.isNotEmpty)
           _CriticalAlertBanner(

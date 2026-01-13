@@ -42,7 +42,7 @@ final class EventResponseServiceProvider
 }
 
 String _$eventResponseServiceHash() =>
-    r'a1bc1ab0c9055ea602da6ce929d36869489c9c97';
+    r'842f2f7b5909c50b70dad08a58c80fbb79184f3a';
 
 abstract class _$EventResponseService extends $Notifier<List<String>> {
   List<String> build();

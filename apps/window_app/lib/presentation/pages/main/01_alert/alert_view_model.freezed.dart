@@ -14,7 +14,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AlertState {
 
- List<SystemLogEntity> get productionLogs; List<SystemLogEntity> get developmentLogs; int get productionAlertCount; int get developmentAlertCount;
+ List<SystemLogEntity> get productionLogs; List<SystemLogEntity> get developmentLogs; int get productionAlertCount; int get developmentAlertCount;/// 필터링에 사용 가능한 source 목록
+ List<String> get availableSources;/// 필터링에 사용 가능한 code 목록
+ List<String> get availableCodes;/// 선택된 source 필터 (null이면 전체)
+ String? get selectedSource;/// 선택된 code 필터 (null이면 전체)
+ String? get selectedCode;/// 선택된 로그 레벨 필터 (빈 Set이면 전체)
+ Set<LogLevel> get selectedLogLevels;/// 시작 날짜 필터 (null이면 제한 없음)
+ DateTime? get startDate;/// 종료 날짜 필터 (null이면 제한 없음)
+ DateTime? get endDate;
 /// Create a copy of AlertState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +32,16 @@ $AlertStateCopyWith<AlertState> get copyWith => _$AlertStateCopyWithImpl<AlertSt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AlertState&&const DeepCollectionEquality().equals(other.productionLogs, productionLogs)&&const DeepCollectionEquality().equals(other.developmentLogs, developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AlertState&&const DeepCollectionEquality().equals(other.productionLogs, productionLogs)&&const DeepCollectionEquality().equals(other.developmentLogs, developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount)&&const DeepCollectionEquality().equals(other.availableSources, availableSources)&&const DeepCollectionEquality().equals(other.availableCodes, availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other.selectedLogLevels, selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(productionLogs),const DeepCollectionEquality().hash(developmentLogs),productionAlertCount,developmentAlertCount);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(productionLogs),const DeepCollectionEquality().hash(developmentLogs),productionAlertCount,developmentAlertCount,const DeepCollectionEquality().hash(availableSources),const DeepCollectionEquality().hash(availableCodes),selectedSource,selectedCode,const DeepCollectionEquality().hash(selectedLogLevels),startDate,endDate);
 
 @override
 String toString() {
-  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
+  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount, availableSources: $availableSources, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate)';
 }
 
 
@@ -45,7 +52,7 @@ abstract mixin class $AlertStateCopyWith<$Res>  {
   factory $AlertStateCopyWith(AlertState value, $Res Function(AlertState) _then) = _$AlertStateCopyWithImpl;
 @useResult
 $Res call({
- List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount
+ List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount, List<String> availableSources, List<String> availableCodes, String? selectedSource, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate
 });
 
 
@@ -62,13 +69,20 @@ class _$AlertStateCopyWithImpl<$Res>
 
 /// Create a copy of AlertState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,Object? availableSources = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,}) {
   return _then(_self.copyWith(
 productionLogs: null == productionLogs ? _self.productionLogs : productionLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,developmentLogs: null == developmentLogs ? _self.developmentLogs : developmentLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,productionAlertCount: null == productionAlertCount ? _self.productionAlertCount : productionAlertCount // ignore: cast_nullable_to_non_nullable
 as int,developmentAlertCount: null == developmentAlertCount ? _self.developmentAlertCount : developmentAlertCount // ignore: cast_nullable_to_non_nullable
-as int,
+as int,availableSources: null == availableSources ? _self.availableSources : availableSources // ignore: cast_nullable_to_non_nullable
+as List<String>,availableCodes: null == availableCodes ? _self.availableCodes : availableCodes // ignore: cast_nullable_to_non_nullable
+as List<String>,selectedSource: freezed == selectedSource ? _self.selectedSource : selectedSource // ignore: cast_nullable_to_non_nullable
+as String?,selectedCode: freezed == selectedCode ? _self.selectedCode : selectedCode // ignore: cast_nullable_to_non_nullable
+as String?,selectedLogLevels: null == selectedLogLevels ? _self.selectedLogLevels : selectedLogLevels // ignore: cast_nullable_to_non_nullable
+as Set<LogLevel>,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -153,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount,  List<String> availableSources,  List<String> availableCodes,  String? selectedSource,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AlertState() when $default != null:
-return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
+return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount,_that.availableSources,_that.availableCodes,_that.selectedSource,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate);case _:
   return orElse();
 
 }
@@ -174,10 +188,10 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount,  List<String> availableSources,  List<String> availableCodes,  String? selectedSource,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate)  $default,) {final _that = this;
 switch (_that) {
 case _AlertState():
-return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
+return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount,_that.availableSources,_that.availableCodes,_that.selectedSource,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +208,10 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<SystemLogEntity> productionLogs,  List<SystemLogEntity> developmentLogs,  int productionAlertCount,  int developmentAlertCount,  List<String> availableSources,  List<String> availableCodes,  String? selectedSource,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate)?  $default,) {final _that = this;
 switch (_that) {
 case _AlertState() when $default != null:
-return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount);case _:
+return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlertCount,_that.developmentAlertCount,_that.availableSources,_that.availableCodes,_that.selectedSource,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate);case _:
   return null;
 
 }
@@ -209,7 +223,7 @@ return $default(_that.productionLogs,_that.developmentLogs,_that.productionAlert
 
 
 class _AlertState implements AlertState {
-  const _AlertState({final  List<SystemLogEntity> productionLogs = const [], final  List<SystemLogEntity> developmentLogs = const [], this.productionAlertCount = 0, this.developmentAlertCount = 0}): _productionLogs = productionLogs,_developmentLogs = developmentLogs;
+  const _AlertState({final  List<SystemLogEntity> productionLogs = const [], final  List<SystemLogEntity> developmentLogs = const [], this.productionAlertCount = 0, this.developmentAlertCount = 0, final  List<String> availableSources = const [], final  List<String> availableCodes = const [], this.selectedSource, this.selectedCode, final  Set<LogLevel> selectedLogLevels = const {}, this.startDate, this.endDate}): _productionLogs = productionLogs,_developmentLogs = developmentLogs,_availableSources = availableSources,_availableCodes = availableCodes,_selectedLogLevels = selectedLogLevels;
   
 
  final  List<SystemLogEntity> _productionLogs;
@@ -228,6 +242,41 @@ class _AlertState implements AlertState {
 
 @override@JsonKey() final  int productionAlertCount;
 @override@JsonKey() final  int developmentAlertCount;
+/// 필터링에 사용 가능한 source 목록
+ final  List<String> _availableSources;
+/// 필터링에 사용 가능한 source 목록
+@override@JsonKey() List<String> get availableSources {
+  if (_availableSources is EqualUnmodifiableListView) return _availableSources;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_availableSources);
+}
+
+/// 필터링에 사용 가능한 code 목록
+ final  List<String> _availableCodes;
+/// 필터링에 사용 가능한 code 목록
+@override@JsonKey() List<String> get availableCodes {
+  if (_availableCodes is EqualUnmodifiableListView) return _availableCodes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_availableCodes);
+}
+
+/// 선택된 source 필터 (null이면 전체)
+@override final  String? selectedSource;
+/// 선택된 code 필터 (null이면 전체)
+@override final  String? selectedCode;
+/// 선택된 로그 레벨 필터 (빈 Set이면 전체)
+ final  Set<LogLevel> _selectedLogLevels;
+/// 선택된 로그 레벨 필터 (빈 Set이면 전체)
+@override@JsonKey() Set<LogLevel> get selectedLogLevels {
+  if (_selectedLogLevels is EqualUnmodifiableSetView) return _selectedLogLevels;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableSetView(_selectedLogLevels);
+}
+
+/// 시작 날짜 필터 (null이면 제한 없음)
+@override final  DateTime? startDate;
+/// 종료 날짜 필터 (null이면 제한 없음)
+@override final  DateTime? endDate;
 
 /// Create a copy of AlertState
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +288,16 @@ _$AlertStateCopyWith<_AlertState> get copyWith => __$AlertStateCopyWithImpl<_Ale
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AlertState&&const DeepCollectionEquality().equals(other._productionLogs, _productionLogs)&&const DeepCollectionEquality().equals(other._developmentLogs, _developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AlertState&&const DeepCollectionEquality().equals(other._productionLogs, _productionLogs)&&const DeepCollectionEquality().equals(other._developmentLogs, _developmentLogs)&&(identical(other.productionAlertCount, productionAlertCount) || other.productionAlertCount == productionAlertCount)&&(identical(other.developmentAlertCount, developmentAlertCount) || other.developmentAlertCount == developmentAlertCount)&&const DeepCollectionEquality().equals(other._availableSources, _availableSources)&&const DeepCollectionEquality().equals(other._availableCodes, _availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other._selectedLogLevels, _selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_productionLogs),const DeepCollectionEquality().hash(_developmentLogs),productionAlertCount,developmentAlertCount);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_productionLogs),const DeepCollectionEquality().hash(_developmentLogs),productionAlertCount,developmentAlertCount,const DeepCollectionEquality().hash(_availableSources),const DeepCollectionEquality().hash(_availableCodes),selectedSource,selectedCode,const DeepCollectionEquality().hash(_selectedLogLevels),startDate,endDate);
 
 @override
 String toString() {
-  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount)';
+  return 'AlertState(productionLogs: $productionLogs, developmentLogs: $developmentLogs, productionAlertCount: $productionAlertCount, developmentAlertCount: $developmentAlertCount, availableSources: $availableSources, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate)';
 }
 
 
@@ -259,7 +308,7 @@ abstract mixin class _$AlertStateCopyWith<$Res> implements $AlertStateCopyWith<$
   factory _$AlertStateCopyWith(_AlertState value, $Res Function(_AlertState) _then) = __$AlertStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount
+ List<SystemLogEntity> productionLogs, List<SystemLogEntity> developmentLogs, int productionAlertCount, int developmentAlertCount, List<String> availableSources, List<String> availableCodes, String? selectedSource, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate
 });
 
 
@@ -276,13 +325,20 @@ class __$AlertStateCopyWithImpl<$Res>
 
 /// Create a copy of AlertState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? productionLogs = null,Object? developmentLogs = null,Object? productionAlertCount = null,Object? developmentAlertCount = null,Object? availableSources = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,}) {
   return _then(_AlertState(
 productionLogs: null == productionLogs ? _self._productionLogs : productionLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,developmentLogs: null == developmentLogs ? _self._developmentLogs : developmentLogs // ignore: cast_nullable_to_non_nullable
 as List<SystemLogEntity>,productionAlertCount: null == productionAlertCount ? _self.productionAlertCount : productionAlertCount // ignore: cast_nullable_to_non_nullable
 as int,developmentAlertCount: null == developmentAlertCount ? _self.developmentAlertCount : developmentAlertCount // ignore: cast_nullable_to_non_nullable
-as int,
+as int,availableSources: null == availableSources ? _self._availableSources : availableSources // ignore: cast_nullable_to_non_nullable
+as List<String>,availableCodes: null == availableCodes ? _self._availableCodes : availableCodes // ignore: cast_nullable_to_non_nullable
+as List<String>,selectedSource: freezed == selectedSource ? _self.selectedSource : selectedSource // ignore: cast_nullable_to_non_nullable
+as String?,selectedCode: freezed == selectedCode ? _self.selectedCode : selectedCode // ignore: cast_nullable_to_non_nullable
+as String?,selectedLogLevels: null == selectedLogLevels ? _self._selectedLogLevels : selectedLogLevels // ignore: cast_nullable_to_non_nullable
+as Set<LogLevel>,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
