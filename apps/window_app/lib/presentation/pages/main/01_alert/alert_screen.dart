@@ -1455,7 +1455,42 @@ class _LogCard extends HookConsumerWidget {
     // 확장 상태
     final isExpanded = useState(false);
 
-    return SelectionArea(
+    // Mute 애니메이션 상태
+    final isMuting = useState(false);
+    final animationController = useAnimationController(
+      duration: const Duration(milliseconds: 300),
+    );
+    final fadeAnimation = useAnimation(
+      CurvedAnimation(parent: animationController, curve: Curves.easeOut),
+    );
+    final scaleAnimation = useAnimation(
+      Tween<double>(begin: 1.0, end: 0.95).animate(
+        CurvedAnimation(parent: animationController, curve: Curves.easeOut),
+      ),
+    );
+
+    // Mute 실행 함수
+    Future<void> performMute({required bool isSingle, MuteRuleDialogResult? ruleResult}) async {
+      isMuting.value = true;
+      await animationController.forward();
+
+      if (isSingle) {
+        await ref.read(systemLogRealtimeServiceProvider.notifier)
+            .setLogMuted(entity.id, true);
+      } else if (ruleResult != null) {
+        await ref.read(muteRuleServiceProvider.notifier).addRule(
+          source: ruleResult.effectiveSource,
+          code: ruleResult.effectiveCode,
+        );
+      }
+    }
+
+    return AnimatedOpacity(
+      opacity: isMuting.value ? (1.0 - fadeAnimation) : 1.0,
+      duration: const Duration(milliseconds: 50),
+      child: Transform.scale(
+        scale: isMuting.value ? scaleAnimation : 1.0,
+        child: SelectionArea(
       child: GestureDetector(
         onTap: () => isExpanded.value = !isExpanded.value,
         child: Container(
@@ -1595,9 +1630,8 @@ class _LogCard extends HookConsumerWidget {
                     if (value == 'assign') {
                       onAssign?.call();
                     } else if (value == 'mute_single') {
-                      // 개별 mute
-                      await ref.read(systemLogRealtimeServiceProvider.notifier)
-                          .setLogMuted(entity.id, true);
+                      // 개별 mute (애니메이션 적용)
+                      await performMute(isSingle: true);
                     } else if (value == 'mute_rule') {
                       // 규칙 기반 mute
                       final result = await MuteRuleDialog.show(
@@ -1606,10 +1640,8 @@ class _LogCard extends HookConsumerWidget {
                         code: entity.code,
                       );
                       if (result != null) {
-                        await ref.read(muteRuleServiceProvider.notifier).addRule(
-                          source: result.effectiveSource,
-                          code: result.effectiveCode,
-                        );
+                        // 애니메이션 적용 후 mute
+                        await performMute(isSingle: false, ruleResult: result);
                       }
                     }
                   },
@@ -1961,6 +1993,8 @@ class _LogCard extends HookConsumerWidget {
           ],
           ),
         ),
+      ),
+      ),
       ),
       ),
     );
