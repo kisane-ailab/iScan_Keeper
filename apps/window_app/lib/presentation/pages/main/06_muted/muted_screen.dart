@@ -755,6 +755,7 @@ class _MuteRuleCardState extends State<_MuteRuleCard> {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Container(
+              constraints: const BoxConstraints(maxHeight: 250),
               decoration: BoxDecoration(
                 color: CupertinoColors.systemGrey6.resolveFrom(context),
                 borderRadius: const BorderRadius.only(
@@ -763,23 +764,22 @@ class _MuteRuleCardState extends State<_MuteRuleCard> {
                 ),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Divider(
                     height: 1,
                     color: CupertinoColors.separator.resolveFrom(context),
                   ),
-                  ...widget.matchingLogs.take(10).map((log) => _buildLogItem(context, log)),
-                  if (widget.matchingLogs.length > 10)
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        '외 ${widget.matchingLogs.length - 10}개 더...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: CupertinoColors.tertiaryLabel.resolveFrom(context),
-                        ),
-                      ),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: widget.matchingLogs.length,
+                      itemBuilder: (context, index) {
+                        return _buildLogItem(context, widget.matchingLogs[index]);
+                      },
                     ),
+                  ),
                 ],
               ),
             ),
