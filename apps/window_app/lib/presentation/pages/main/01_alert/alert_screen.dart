@@ -731,6 +731,7 @@ class _AlertTabContent extends HookConsumerWidget {
                       onAssign: isAdmin
                           ? () => _showAssignDialog(context, ref, entity)
                           : null,
+                      isAdmin: isAdmin,
                     );
                   },
                 ),
@@ -1401,6 +1402,7 @@ class _LogCard extends HookConsumerWidget {
     required this.onAbandon,
     required this.onComplete,
     this.onAssign,
+    this.isAdmin = false,
   });
 
   final SystemLogEntity entity;
@@ -1408,6 +1410,7 @@ class _LogCard extends HookConsumerWidget {
   final VoidCallback onAbandon;
   final VoidCallback onComplete;
   final VoidCallback? onAssign;
+  final bool isAdmin;
 
   Color _getLevelColor(LogLevel level) {
     switch (level) {
@@ -1668,41 +1671,43 @@ class _LogCard extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                    // 구분선
-                    if (onAssign != null && !entity.isCompleted)
+                    // 구분선 (관리자 전용)
+                    if (isAdmin && (onAssign != null && !entity.isCompleted))
                       const PopupMenuDivider(height: 1),
-                    // 이 알림 숨기기
-                    PopupMenuItem<String>(
-                      value: 'mute_single',
-                      height: 40,
-                      child: Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.bell_slash,
-                            size: 16,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('이 알림 숨기기', style: TextStyle(fontSize: 13)),
-                        ],
+                    // 이 알림 숨기기 (관리자 전용)
+                    if (isAdmin)
+                      PopupMenuItem<String>(
+                        value: 'mute_single',
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.bell_slash,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('이 알림 숨기기', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
                       ),
-                    ),
-                    // 이 종류의 알림 숨기기
-                    PopupMenuItem<String>(
-                      value: 'mute_rule',
-                      height: 40,
-                      child: Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.bell_slash_fill,
-                            size: 16,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('이 종류의 알림 숨기기...', style: TextStyle(fontSize: 13)),
-                        ],
+                    // 이 종류의 알림 숨기기 (관리자 전용)
+                    if (isAdmin)
+                      PopupMenuItem<String>(
+                        value: 'mute_rule',
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.bell_slash_fill,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('이 종류의 알림 숨기기...', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                   child: Container(
                     padding: const EdgeInsets.all(6),
