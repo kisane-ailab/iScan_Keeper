@@ -19,6 +19,7 @@ class SystemLogEntity {
   final Map<String, dynamic> payload;
   final ResponseStatus responseStatus;
   final DateTime _createdAtUtc;
+  final DateTime? _updatedAtUtc;
   final String? currentResponderId;
   final String? currentResponderName;
   final DateTime? _responseStartedAtUtc;
@@ -38,6 +39,7 @@ class SystemLogEntity {
     required this.payload,
     required this.responseStatus,
     required DateTime createdAt,
+    DateTime? updatedAt,
     this.currentResponderId,
     this.currentResponderName,
     DateTime? responseStartedAt,
@@ -46,6 +48,7 @@ class SystemLogEntity {
     this.assignedByName,
     this.isMuted,
   })  : _createdAtUtc = createdAt,
+        _updatedAtUtc = updatedAt,
         _responseStartedAtUtc = responseStartedAt;
 
   /// Model에서 Entity 생성
@@ -61,6 +64,7 @@ class SystemLogEntity {
       payload: model.payload,
       responseStatus: model.responseStatus,
       createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
       currentResponderId: model.currentResponderId,
       currentResponderName: model.currentResponderName,
       responseStartedAt: model.responseStartedAt,
@@ -76,11 +80,17 @@ class SystemLogEntity {
   /// 생성 시간 (로컬 시간)
   DateTime get createdAt => _createdAtUtc.toLocal();
 
+  /// 업데이트 시간 (로컬 시간) - 없으면 생성 시간 반환
+  DateTime get updatedAt => (_updatedAtUtc ?? _createdAtUtc).toLocal();
+
   /// 대응 시작 시간 (로컬 시간)
   DateTime? get responseStartedAt => _responseStartedAtUtc?.toLocal();
 
   /// 생성 시간 (UTC 원본)
   DateTime get createdAtUtc => _createdAtUtc;
+
+  /// 업데이트 시간 (UTC 원본)
+  DateTime? get updatedAtUtc => _updatedAtUtc;
 
   /// 대응 시작 시간 (UTC 원본)
   DateTime? get responseStartedAtUtc => _responseStartedAtUtc;
@@ -89,6 +99,9 @@ class SystemLogEntity {
 
   /// 생성 시간 포맷 (MM/dd HH:mm)
   String get formattedCreatedAt => _formatDateTime(createdAt);
+
+  /// 업데이트 시간 포맷 (MM/dd HH:mm)
+  String get formattedUpdatedAt => _formatDateTime(updatedAt);
 
   /// 대응 시작 시간 포맷 (MM/dd HH:mm 시작)
   String? get formattedResponseStartedAt {

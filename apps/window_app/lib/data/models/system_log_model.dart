@@ -22,6 +22,7 @@ abstract class SystemLogModel with _$SystemLogModel {
     @Default({}) Map<String, dynamic> payload,
     @JsonKey(name: 'response_status', unknownEnumValue: ResponseStatus.unresponded) @Default(ResponseStatus.unresponded) ResponseStatus responseStatus,
     @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime? updatedAt,
     @JsonKey(name: 'current_responder_id') String? currentResponderId,
     @JsonKey(name: 'current_responder_name') String? currentResponderName,
     @JsonKey(name: 'response_started_at') DateTime? responseStartedAt,

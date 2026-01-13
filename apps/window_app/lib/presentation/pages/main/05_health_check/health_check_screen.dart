@@ -622,8 +622,8 @@ class _NeonFilterChip extends StatelessWidget {
                 shadows: isSelected
                     ? [
                         Shadow(
-                          color: color.withValues(alpha: 0.8),
-                          blurRadius: 8,
+                          color: color.withValues(alpha: 0.4),
+                          blurRadius: 4,
                         ),
                       ]
                     : null,

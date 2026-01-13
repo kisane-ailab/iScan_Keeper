@@ -24,6 +24,24 @@ import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
 
+/// 정렬 필드
+enum SortField {
+  createdAt('생성시간'),
+  updatedAt('업데이트시간');
+
+  final String label;
+  const SortField(this.label);
+}
+
+/// 정렬 순서
+enum SortOrder {
+  desc('최신순'),
+  asc('오래된순');
+
+  final String label;
+  const SortOrder(this.label);
+}
+
 class AlertScreen extends HookConsumerWidget {
   const AlertScreen({super.key});
 
@@ -616,6 +634,126 @@ class _CupertinoBadge extends StatelessWidget {
   }
 }
 
+/// 정렬 헤더
+class _SortHeader extends StatelessWidget {
+  const _SortHeader({
+    required this.sortField,
+    required this.sortOrder,
+    required this.onSortFieldChanged,
+    required this.onSortOrderChanged,
+    required this.totalCount,
+  });
+
+  final SortField sortField;
+  final SortOrder sortOrder;
+  final void Function(SortField) onSortFieldChanged;
+  final void Function(SortOrder) onSortOrderChanged;
+  final int totalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // 총 개수
+          Text(
+            '총 $totalCount건',
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Spacer(),
+          // 정렬 필드 선택
+          PopupMenuButton<SortField>(
+            tooltip: '정렬 기준',
+            initialValue: sortField,
+            onSelected: onSortFieldChanged,
+            offset: const Offset(0, 36),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.sort_down,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sortField.label,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            itemBuilder: (context) => SortField.values
+                .map((field) => PopupMenuItem<SortField>(
+                      value: field,
+                      child: Text(
+                        field.label,
+                        style: TextStyle(
+                          fontWeight: field == sortField ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(width: 8),
+          // 정렬 순서 토글
+          GestureDetector(
+            onTap: () => onSortOrderChanged(
+              sortOrder == SortOrder.desc ? SortOrder.asc : SortOrder.desc,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    sortOrder == SortOrder.desc
+                        ? CupertinoIcons.arrow_down
+                        : CupertinoIcons.arrow_up,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sortOrder.label,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 탭 콘텐츠 (Production/Development 공용)
 class _AlertTabContent extends HookConsumerWidget {
   const _AlertTabContent({
@@ -638,6 +776,10 @@ class _AlertTabContent extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAlwaysOnTop = ref.watch(alwaysOnTopStateProvider);
     final settings = ref.watch(notificationSettingsServiceProvider);
+
+    // 정렬 상태
+    final sortField = useState(SortField.createdAt);
+    final sortOrder = useState(SortOrder.desc);
 
     // 현재 유저 정보 (관리자 여부 확인)
     final currentUserAsync = ref.watch(currentUserDetailProvider);
@@ -664,6 +806,20 @@ class _AlertTabContent extends HookConsumerWidget {
       return action == NotificationAction.alwaysOnTop;
     }).toList();
 
+    // 정렬 적용
+    final sortedLogs = List<SystemLogEntity>.from(logs);
+    sortedLogs.sort((a, b) {
+      final aTime = sortField.value == SortField.createdAt
+          ? a.createdAt
+          : a.updatedAt;
+      final bTime = sortField.value == SortField.createdAt
+          ? b.createdAt
+          : b.updatedAt;
+      return sortOrder.value == SortOrder.desc
+          ? bTime.compareTo(aTime)
+          : aTime.compareTo(bTime);
+    });
+
     return Column(
       children: [
         // 필터 영역
@@ -679,9 +835,19 @@ class _AlertTabContent extends HookConsumerWidget {
             onRespond: (entity) => _showResponseDialog(context, ref, entity),
           ),
 
+        // 정렬 헤더
+        if (sortedLogs.isNotEmpty)
+          _SortHeader(
+            sortField: sortField.value,
+            sortOrder: sortOrder.value,
+            onSortFieldChanged: (field) => sortField.value = field,
+            onSortOrderChanged: (order) => sortOrder.value = order,
+            totalCount: sortedLogs.length,
+          ),
+
         // 메인 콘텐츠
         Expanded(
-          child: logs.isEmpty
+          child: sortedLogs.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -721,9 +887,9 @@ class _AlertTabContent extends HookConsumerWidget {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: logs.length,
+                  itemCount: sortedLogs.length,
                   itemBuilder: (context, index) {
-                    final entity = logs[index];
+                    final entity = sortedLogs[index];
                     return _LogCard(
                       entity: entity,
                       onRespond: () =>
@@ -1186,7 +1352,7 @@ class _AssignBottomSheet extends StatelessWidget {
   }
 }
 
-/// 긴급 알림 배너 (실시간 경과시간 표시, 스크롤 가능)
+/// 긴급 알림 배너 (실시간 경과시간 표시, 스크롤 가능, 투명도/크기 조절)
 class _CriticalAlertBanner extends HookWidget {
   const _CriticalAlertBanner({
     required this.entities,
@@ -1195,6 +1361,10 @@ class _CriticalAlertBanner extends HookWidget {
 
   final List<SystemLogEntity> entities;
   final void Function(SystemLogEntity) onRespond;
+
+  static const double _minHeight = 120.0;
+  static const double _maxHeight = 400.0;
+  static const double _defaultHeight = 180.0;
 
   @override
   Widget build(BuildContext context) {
@@ -1207,191 +1377,257 @@ class _CriticalAlertBanner extends HookWidget {
       return timer.cancel;
     }, []);
 
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFDC143C),
-            const Color(0xFFB91C3C),
+    // 배너 높이 상태
+    final bannerHeight = useState(_defaultHeight);
+    // 투명도 상태
+    final opacity = useState(1.0);
+
+    return Opacity(
+      opacity: opacity.value,
+      child: Container(
+        width: double.infinity,
+        height: bannerHeight.value,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFDC143C),
+              const Color(0xFFB91C3C),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFDC143C).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFDC143C).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 헤더 (고정)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.exclamationmark_triangle_fill,
-                    color: CupertinoColors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '긴급 알림 ${entities.length}건',
-                  style: const TextStyle(
-                    color: CupertinoColors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    '대응 필요',
-                    style: TextStyle(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 헤더 (고정)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.exclamationmark_triangle_fill,
                       color: CupertinoColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      size: 20,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // 알림 목록 (스크롤 가능, 흰색 스크롤바)
-          Flexible(
-            child: RawScrollbar(
-              thumbColor: CupertinoColors.white.withValues(alpha: 0.6),
-              radius: const Radius.circular(4),
-              thickness: 4,
-              thumbVisibility: true,
-              padding: const EdgeInsets.only(right: 4),
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                itemCount: entities.length,
-                itemBuilder: (context, index) {
-                  final entity = entities[index];
-                  return SelectionArea(
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                      children: [
-                        // 번호 뱃지
-                        Container(
-                          width: 26,
-                          height: 26,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: CupertinoColors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '긴급 알림 ${entities.length}건',
+                    style: const TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Spacer(),
+                  // 투명도 슬라이더
+                  Icon(
+                    CupertinoIcons.sun_min,
+                    color: CupertinoColors.white.withValues(alpha: 0.7),
+                    size: 14,
+                  ),
+                  SizedBox(
+                    width: 80,
+                    height: 20,
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6,
                         ),
-                        // 소스 & 코드
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '[${entity.source}]',
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 12,
+                        ),
+                        activeTrackColor: CupertinoColors.white,
+                        inactiveTrackColor: CupertinoColors.white.withValues(alpha: 0.3),
+                        thumbColor: CupertinoColors.white,
+                        overlayColor: CupertinoColors.white.withValues(alpha: 0.2),
+                      ),
+                      child: Slider(
+                        value: opacity.value,
+                        min: 0.3,
+                        max: 1.0,
+                        onChanged: (value) => opacity.value = value,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '대응 필요',
+                      style: TextStyle(
+                        color: CupertinoColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 알림 목록 (스크롤 가능, 흰색 스크롤바)
+            Expanded(
+              child: RawScrollbar(
+                thumbColor: CupertinoColors.white.withValues(alpha: 0.6),
+                radius: const Radius.circular(4),
+                thickness: 4,
+                thumbVisibility: true,
+                padding: const EdgeInsets.only(right: 4),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  itemCount: entities.length,
+                  itemBuilder: (context, index) {
+                    final entity = entities[index];
+                    return SelectionArea(
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                        children: [
+                          // 번호 뱃지
+                          Container(
+                            width: 26,
+                            height: 26,
+                            margin: const EdgeInsets.only(right: 10),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
                                 style: const TextStyle(
                                   color: CupertinoColors.white,
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              if (entity.code != null)
+                            ),
+                          ),
+                          // 소스 & 코드
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  entity.code!,
-                                  style: TextStyle(
-                                    color: CupertinoColors.white.withValues(alpha: 0.8),
-                                    fontSize: 11,
+                                  '[${entity.source}]',
+                                  style: const TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                            ],
+                                if (entity.code != null)
+                                  Text(
+                                    entity.code!,
+                                    style: TextStyle(
+                                      color: CupertinoColors.white.withValues(alpha: 0.8),
+                                      fontSize: 11,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        // 경과 시간 타이머 (slide_countdown)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white.withValues(alpha: 0.2),
+                          // 경과 시간 타이머
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: CupertinoColors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              entity.formattedCreatedElapsedTime,
+                              style: const TextStyle(
+                                color: CupertinoColors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // 대응 버튼
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            color: CupertinoColors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: CupertinoColors.white.withValues(alpha: 0.3),
+                            minSize: 0,
+                            onPressed: () => onRespond(entity),
+                            child: const Text(
+                              '대응',
+                              style: TextStyle(
+                                color: Color(0xFFDC143C),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            entity.formattedCreatedElapsedTime,
-                            style: const TextStyle(
-                              color: CupertinoColors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // 대응 버튼
-                        CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          color: CupertinoColors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          minSize: 0,
-                          onPressed: () => onRespond(entity),
-                          child: const Text(
-                            '대응',
-                            style: TextStyle(
-                              color: Color(0xFFDC143C),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+            // 리사이즈 핸들
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                final newHeight = bannerHeight.value + details.delta.dy;
+                bannerHeight.value = newHeight.clamp(_minHeight, _maxHeight);
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeRow,
+                child: Container(
+                  width: double.infinity,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.white.withValues(alpha: 0.1),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

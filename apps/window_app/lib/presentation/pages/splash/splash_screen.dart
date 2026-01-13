@@ -28,6 +28,7 @@ class SplashScreen extends BasePage {
 
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
+    final obscurePassword = useState(true);
 
     Future<void> handleLogin() async {
       if (state.isLoading) return;
@@ -86,12 +87,22 @@ class SplashScreen extends BasePage {
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '비밀번호',
-                  prefixIcon: Icon(Icons.lock_outlined),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      obscurePassword.value = !obscurePassword.value;
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: obscurePassword.value,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => handleLogin(),
               ),

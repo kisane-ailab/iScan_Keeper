@@ -9,6 +9,7 @@ import 'package:window_app/presentation/pages/main/03_profile/profile_screen.dar
 import 'package:window_app/presentation/pages/main/04_settings/settings_screen.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_screen.dart';
 import 'package:window_app/presentation/pages/main/06_muted/muted_screen.dart';
+import 'package:window_app/presentation/pages/main/07_swagger/swagger_screen.dart';
 import 'package:window_app/presentation/pages/splash/splash_screen.dart';
 import 'package:window_app/presentation/pages/splash/signup/signup_screen.dart';
 import 'package:window_app/presentation/pages/splash/verification/email_verification_screen.dart';
@@ -23,6 +24,7 @@ final _shellNavigatorDashboardKey = GlobalKey<NavigatorState>();
 final _shellNavigatorProfileKey = GlobalKey<NavigatorState>();
 final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>();
 final _shellNavigatorMutedKey = GlobalKey<NavigatorState>();
+final _shellNavigatorSwaggerKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter appRouter(Ref ref) {
@@ -137,6 +139,17 @@ GoRouter appRouter(Ref ref) {
                 path: SettingsScreen.path,
                 name: SettingsScreen.name,
                 builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+          // API 문서 브랜치
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorSwaggerKey,
+            routes: [
+              GoRoute(
+                path: SwaggerScreen.path,
+                name: SwaggerScreen.name,
+                builder: (context, state) => const SwaggerScreen(),
               ),
             ],
           ),

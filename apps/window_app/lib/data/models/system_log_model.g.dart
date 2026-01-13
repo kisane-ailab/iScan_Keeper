@@ -30,6 +30,9 @@ _SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
           ) ??
           ResponseStatus.unresponded,
       createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
       currentResponderId: json['current_responder_id'] as String?,
       currentResponderName: json['current_responder_name'] as String?,
       responseStartedAt: json['response_started_at'] == null
@@ -53,6 +56,7 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'payload': instance.payload,
       'response_status': _$ResponseStatusEnumMap[instance.responseStatus]!,
       'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
       'current_responder_id': instance.currentResponderId,
       'current_responder_name': instance.currentResponderName,
       'response_started_at': instance.responseStartedAt?.toIso8601String(),
