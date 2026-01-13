@@ -1381,8 +1381,6 @@ class _CriticalAlertBanner extends HookWidget {
     final bannerHeight = useState(_defaultHeight);
     // 투명도 상태
     final opacity = useState(1.0);
-    // 설정 패널 표시 여부
-    final showSettings = useState(false);
 
     return Opacity(
       opacity: opacity.value,
@@ -1436,42 +1434,34 @@ class _CriticalAlertBanner extends HookWidget {
                     ),
                   ),
                   const Spacer(),
-                  // 투명도 슬라이더 (설정 패널 열림 시)
-                  if (showSettings.value) ...[
-                    Icon(
-                      CupertinoIcons.sun_min,
-                      color: CupertinoColors.white.withValues(alpha: 0.7),
-                      size: 14,
-                    ),
-                    SizedBox(
-                      width: 100,
-                      child: CupertinoSlider(
+                  // 투명도 슬라이더
+                  Icon(
+                    CupertinoIcons.sun_min,
+                    color: CupertinoColors.white.withValues(alpha: 0.7),
+                    size: 14,
+                  ),
+                  SizedBox(
+                    width: 80,
+                    height: 20,
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6,
+                        ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 12,
+                        ),
+                        activeTrackColor: CupertinoColors.white,
+                        inactiveTrackColor: CupertinoColors.white.withValues(alpha: 0.3),
+                        thumbColor: CupertinoColors.white,
+                        overlayColor: CupertinoColors.white.withValues(alpha: 0.2),
+                      ),
+                      child: Slider(
                         value: opacity.value,
                         min: 0.3,
                         max: 1.0,
-                        activeColor: CupertinoColors.white,
                         onChanged: (value) => opacity.value = value,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  // 설정 토글 버튼
-                  GestureDetector(
-                    onTap: () => showSettings.value = !showSettings.value,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: showSettings.value
-                            ? CupertinoColors.white.withValues(alpha: 0.3)
-                            : CupertinoColors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        showSettings.value
-                            ? CupertinoIcons.xmark
-                            : CupertinoIcons.slider_horizontal_3,
-                        color: CupertinoColors.white,
-                        size: 14,
                       ),
                     ),
                   ),
