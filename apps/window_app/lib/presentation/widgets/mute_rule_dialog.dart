@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 /// Mute 규칙 설정 다이얼로그 결과
 class MuteRuleDialogResult {
@@ -202,23 +201,29 @@ class _CheckboxRow extends StatelessWidget {
       onTap: () => onChanged(!isChecked),
       child: Row(
         children: [
-          SizedBox(
+          // Cupertino 스타일 체크박스
+          Container(
             width: 22,
             height: 22,
-            child: Checkbox(
-              value: isChecked,
-              onChanged: (v) => onChanged(v ?? false),
-              activeColor: CupertinoColors.systemBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
-              side: BorderSide(
-                color: CupertinoColors.systemGrey.resolveFrom(context),
+            decoration: BoxDecoration(
+              color: isChecked
+                  ? CupertinoColors.systemBlue
+                  : CupertinoColors.systemBackground.resolveFrom(context),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isChecked
+                    ? CupertinoColors.systemBlue
+                    : CupertinoColors.systemGrey.resolveFrom(context),
                 width: 1.5,
               ),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
             ),
+            child: isChecked
+                ? const Icon(
+                    CupertinoIcons.checkmark,
+                    size: 16,
+                    color: CupertinoColors.white,
+                  )
+                : null,
           ),
           const SizedBox(width: 8),
           Text(
