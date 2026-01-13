@@ -1472,10 +1472,19 @@ class _LogCard extends HookConsumerWidget {
       ),
     );
 
+    // Mute 완료 상태 (높이 축소용)
+    final isMuteComplete = useState(false);
+
     // Mute 실행 함수
     Future<void> performMute({required bool isSingle, MuteRuleDialogResult? ruleResult}) async {
       isMuting.value = true;
       await animationController.forward();
+
+      // 애니메이션 완료 후 높이 축소
+      isMuteComplete.value = true;
+
+      // 약간의 딜레이 후 실제 mute 처리
+      await Future.delayed(const Duration(milliseconds: 200));
 
       if (isSingle) {
         await ref.read(systemLogRealtimeServiceProvider.notifier)
@@ -1488,7 +1497,12 @@ class _LogCard extends HookConsumerWidget {
       }
     }
 
-    return AnimatedOpacity(
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: isMuteComplete.value
+          ? const SizedBox.shrink()
+          : AnimatedOpacity(
       opacity: isMuting.value ? (1.0 - fadeAnimation) : 1.0,
       duration: const Duration(milliseconds: 50),
       child: Transform.scale(
@@ -1998,6 +2012,7 @@ class _LogCard extends HookConsumerWidget {
           ],
           ),
         ),
+      ),
       ),
       ),
       ),
