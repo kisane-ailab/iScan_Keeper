@@ -38,6 +38,7 @@ _SystemLogModel _$SystemLogModelFromJson(Map<String, dynamic> json) =>
       organizationId: json['organization_id'] as String?,
       assignedById: json['assigned_by_id'] as String?,
       assignedByName: json['assigned_by_name'] as String?,
+      isMuted: json['is_muted'] as bool?,
     );
 
 Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
@@ -58,6 +59,7 @@ Map<String, dynamic> _$SystemLogModelToJson(_SystemLogModel instance) =>
       'organization_id': instance.organizationId,
       'assigned_by_id': instance.assignedById,
       'assigned_by_name': instance.assignedByName,
+      'is_muted': instance.isMuted,
     };
 
 const _$LogCategoryEnumMap = {

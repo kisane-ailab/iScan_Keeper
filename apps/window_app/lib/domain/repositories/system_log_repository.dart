@@ -25,4 +25,7 @@ abstract class SystemLogRepository {
     String logLevel = 'info',
     Map<String, dynamic>? payload,
   });
+
+  /// 시스템 로그 알림 무시 설정/해제
+  Future<Map<String, dynamic>> setLogMuted(String id, bool muted);
 }

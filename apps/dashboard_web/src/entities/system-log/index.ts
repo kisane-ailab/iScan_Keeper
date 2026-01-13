@@ -7,6 +7,8 @@ export type {
   SystemLog,
   CreateSystemLogRequest,
   CreateSystemLogResponse,
+  SetLogMutedRequest,
+  SetLogMutedResponse,
   ApiErrorResponse,
 } from './model';
 
@@ -14,4 +16,4 @@ export type {
 export { systemLogApi } from './api';
 
 // Queries
-export { useCreateSystemLog, SYSTEM_LOG_QUERY_KEY } from './queries';
+export { useCreateSystemLog, SYSTEM_LOG_QUERY_KEY, useSetLogMuted } from './queries';

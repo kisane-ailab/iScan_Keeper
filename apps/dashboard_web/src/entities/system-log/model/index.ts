@@ -6,5 +6,7 @@ export type {
   SystemLog,
   CreateSystemLogRequest,
   CreateSystemLogResponse,
+  SetLogMutedRequest,
+  SetLogMutedResponse,
   ApiErrorResponse,
 } from './types';
