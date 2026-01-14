@@ -1,4 +1,4 @@
-﻿import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:window_app/data/models/enums/environment.dart';
 import 'package:window_app/data/models/enums/log_category.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
@@ -7,8 +7,8 @@ import 'package:window_app/data/models/enums/response_status.dart';
 part 'system_log_model.freezed.dart';
 part 'system_log_model.g.dart';
 
-/// ?쒖뒪??濡쒓렇 DTO (DB/API 留ㅽ븨 ?꾩슜)
-/// 鍮꾩쫰?덉뒪 濡쒖쭅? SystemLogEntity?먯꽌 泥섎━
+/// 시스템 로그 DTO (DB/API 매핑 전용)
+/// 비즈니스 로직은 SystemLogEntity에서 처리
 @freezed
 abstract class SystemLogModel with _$SystemLogModel {
   const factory SystemLogModel({
