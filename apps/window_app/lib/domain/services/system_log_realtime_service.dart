@@ -53,32 +53,64 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     return action == NotificationAction.alwaysOnTop;
   }
 
-  /// 기존 로그 조회 (앱 시작 시) - 모든 레벨
+  /// 기존 로그 조회 (앱 시작 시) - 이벤트와 헬스체크 각각 조회
   Future<void> _fetchInitialLogs() async {
     try {
-      final systemLogRepository = ref.read(systemLogRepositoryProvider);
+      final client = ref.read(supabaseClientProvider);
 
-      // 모든 레벨의 로그 조회 (최근 100개)
-      final response = await systemLogRepository.getSystemLogs(limit: 100);
+      // 최근 2주 기준 날짜
+      final twoWeeksAgo = DateTime.now().subtract(const Duration(days: 14)).toUtc().toIso8601String();
 
-      _logger.i('기존 로그 ${response.length}건 조회 완료');
+      // 이벤트 로그 조회 (최근 2주)
+      final eventResponse = await client
+          .from('system_logs')
+          .select()
+          .eq('category', 'event')
+          .or('is_muted.is.null,is_muted.eq.false')
+          .gte('created_at', twoWeeksAgo)
+          .order('created_at', ascending: false);
+
+      // 헬스체크 로그 조회 (최근 2주)
+      final healthCheckResponse = await client
+          .from('system_logs')
+          .select()
+          .eq('category', 'health_check')
+          .or('is_muted.is.null,is_muted.eq.false')
+          .gte('created_at', twoWeeksAgo)
+          .order('created_at', ascending: false);
+
+      _logger.i('기존 로그 조회 완료 - 이벤트: ${eventResponse.length}건, 헬스체크: ${healthCheckResponse.length}건');
 
       bool hasAlwaysOnTopNeeded = false;
+      final allLogs = <SystemLogEntity>[];
 
-      for (final record in response) {
+      // 이벤트 로그 파싱
+      for (final record in eventResponse) {
         try {
           final model = SystemLogModel.fromJson(record);
           final entity = _toEntity(model);
-          state = [...state, entity];
-
-          // 항상위 모드가 필요한 미대응 로그가 있는지 체크
-          if (_needsAlwaysOnTop(entity)) {
-            hasAlwaysOnTopNeeded = true;
-          }
+          allLogs.add(entity);
+          if (_needsAlwaysOnTop(entity)) hasAlwaysOnTopNeeded = true;
         } catch (e) {
-          _logger.e('로그 파싱 오류', error: e);
+          _logger.e('이벤트 로그 파싱 오류', error: e);
         }
       }
+
+      // 헬스체크 로그 파싱
+      for (final record in healthCheckResponse) {
+        try {
+          final model = SystemLogModel.fromJson(record);
+          final entity = _toEntity(model);
+          allLogs.add(entity);
+          if (_needsAlwaysOnTop(entity)) hasAlwaysOnTopNeeded = true;
+        } catch (e) {
+          _logger.e('헬스체크 로그 파싱 오류', error: e);
+        }
+      }
+
+      // 시간순 정렬 (최신순)
+      allLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      state = allLogs;
 
       // 항상위 모드가 필요한 미대응 로그가 있으면 활성화
       if (hasAlwaysOnTopNeeded) {
