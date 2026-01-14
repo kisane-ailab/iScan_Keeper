@@ -45,7 +45,7 @@ final class HealthCheckViewModelProvider
 }
 
 String _$healthCheckViewModelHash() =>
-    r'035b993fbcde8a34311d604c6064f662bf91399e';
+    r'8358653c004811f6c345e7f77dbc7a4d9b547ee2';
 
 /// HealthCheck ViewModel
 

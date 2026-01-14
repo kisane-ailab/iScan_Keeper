@@ -1,13 +1,13 @@
-import 'package:window_app/data/models/enums/environment.dart';
+﻿import 'package:window_app/data/models/enums/environment.dart';
 import 'package:window_app/data/models/enums/log_category.dart';
 import 'package:window_app/data/models/enums/log_level.dart';
 import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/system_log_model.dart';
 
-/// 시스템 로그 도메인 엔티티
-/// - Model의 원시 데이터를 비즈니스 관점으로 해석
-/// - 로컬 시간 변환 제공
-/// - 비즈니스 로직 포함
+/// ?쒖뒪??濡쒓렇 ?꾨찓???뷀떚??
+/// - Model???먯떆 ?곗씠?곕? 鍮꾩쫰?덉뒪 愿?먯쑝濡??댁꽍
+/// - 濡쒖뺄 ?쒓컙 蹂???쒓났
+/// - 鍮꾩쫰?덉뒪 濡쒖쭅 ?ы븿
 class SystemLogEntity {
   final String id;
   final String source;
@@ -17,6 +17,7 @@ class SystemLogEntity {
   final LogLevel logLevel;
   final Environment environment;
   final Map<String, dynamic> payload;
+  final Map<String, dynamic> attachments;
   final ResponseStatus responseStatus;
   final DateTime _createdAtUtc;
   final DateTime? _updatedAtUtc;
@@ -27,6 +28,7 @@ class SystemLogEntity {
   final String? assignedById;
   final String? assignedByName;
   final bool? isMuted;
+  final String? site;
 
   SystemLogEntity({
     required this.id,
@@ -37,6 +39,7 @@ class SystemLogEntity {
     required this.logLevel,
     required this.environment,
     required this.payload,
+    required this.attachments,
     required this.responseStatus,
     required DateTime createdAt,
     DateTime? updatedAt,
@@ -47,12 +50,20 @@ class SystemLogEntity {
     this.assignedById,
     this.assignedByName,
     this.isMuted,
+    this.site,
   })  : _createdAtUtc = createdAt,
         _updatedAtUtc = updatedAt,
         _responseStartedAtUtc = responseStartedAt;
 
-  /// Model에서 Entity 생성
+  /// Model?먯꽌 Entity ?앹꽦
+  /// EdgeManager ?뚯뒪??寃쎌슦 site媛 null?대㈃ payload.dbKey瑜??ъ슜
   factory SystemLogEntity.fromModel(SystemLogModel model) {
+    // EdgeManager??寃쎌슦 site媛 ?놁쑝硫?payload.dbKey ?ъ슜
+    String? site = model.site;
+    if (site == null && model.source == 'EdgeManager') {
+      site = model.payload['dbKey'] as String?;
+    }
+
     return SystemLogEntity(
       id: model.id,
       source: model.source,
@@ -62,6 +73,7 @@ class SystemLogEntity {
       logLevel: model.logLevel,
       environment: model.environment,
       payload: model.payload,
+      attachments: model.attachments,
       responseStatus: model.responseStatus,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
@@ -72,52 +84,53 @@ class SystemLogEntity {
       assignedById: model.assignedById,
       assignedByName: model.assignedByName,
       isMuted: model.isMuted,
+      site: site,
     );
   }
 
-  // ===== 로컬 시간 변환 =====
+  // ===== 濡쒖뺄 ?쒓컙 蹂??=====
 
-  /// 생성 시간 (로컬 시간)
+  /// ?앹꽦 ?쒓컙 (濡쒖뺄 ?쒓컙)
   DateTime get createdAt => _createdAtUtc.toLocal();
 
-  /// 업데이트 시간 (로컬 시간) - 없으면 생성 시간 반환
+  /// ?낅뜲?댄듃 ?쒓컙 (濡쒖뺄 ?쒓컙) - ?놁쑝硫??앹꽦 ?쒓컙 諛섑솚
   DateTime get updatedAt => (_updatedAtUtc ?? _createdAtUtc).toLocal();
 
-  /// 대응 시작 시간 (로컬 시간)
+  /// ????쒖옉 ?쒓컙 (濡쒖뺄 ?쒓컙)
   DateTime? get responseStartedAt => _responseStartedAtUtc?.toLocal();
 
-  /// 생성 시간 (UTC 원본)
+  /// ?앹꽦 ?쒓컙 (UTC ?먮낯)
   DateTime get createdAtUtc => _createdAtUtc;
 
-  /// 업데이트 시간 (UTC 원본)
+  /// ?낅뜲?댄듃 ?쒓컙 (UTC ?먮낯)
   DateTime? get updatedAtUtc => _updatedAtUtc;
 
-  /// 대응 시작 시간 (UTC 원본)
+  /// ????쒖옉 ?쒓컙 (UTC ?먮낯)
   DateTime? get responseStartedAtUtc => _responseStartedAtUtc;
 
-  // ===== 포맷된 시간 문자열 =====
+  // ===== ?щ㎎???쒓컙 臾몄옄??=====
 
-  /// 생성 시간 포맷 (MM/dd HH:mm)
+  /// ?앹꽦 ?쒓컙 ?щ㎎ (MM/dd HH:mm)
   String get formattedCreatedAt => _formatDateTime(createdAt);
 
-  /// 업데이트 시간 포맷 (MM/dd HH:mm)
+  /// ?낅뜲?댄듃 ?쒓컙 ?щ㎎ (MM/dd HH:mm)
   String get formattedUpdatedAt => _formatDateTime(updatedAt);
 
-  /// 대응 시작 시간 포맷 (MM/dd HH:mm 시작)
+  /// ????쒖옉 ?쒓컙 ?щ㎎ (MM/dd HH:mm ?쒖옉)
   String? get formattedResponseStartedAt {
     final time = responseStartedAt;
     if (time == null) return null;
-    return '${_formatDateTime(time)} 시작';
+    return '${_formatDateTime(time)} ?쒖옉';
   }
 
-  /// 대응 경과 시간 (Duration)
+  /// ???寃쎄낵 ?쒓컙 (Duration)
   Duration? get responseElapsedDuration {
     final time = responseStartedAt;
     if (time == null) return null;
     return DateTime.now().difference(time);
   }
 
-  /// 대응 경과 시간 포맷 (HH:mm:ss 또는 mm:ss)
+  /// ???寃쎄낵 ?쒓컙 ?щ㎎ (HH:mm:ss ?먮뒗 mm:ss)
   String? get formattedElapsedTime {
     final duration = responseElapsedDuration;
     if (duration == null) return null;
@@ -132,12 +145,12 @@ class SystemLogEntity {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// 발생 후 경과 시간 (Duration)
+  /// 諛쒖깮 ??寃쎄낵 ?쒓컙 (Duration)
   Duration get createdElapsedDuration {
     return DateTime.now().difference(createdAt);
   }
 
-  /// 발생 후 경과 시간 포맷 (HH:mm:ss 또는 mm:ss)
+  /// 諛쒖깮 ??寃쎄낵 ?쒓컙 ?щ㎎ (HH:mm:ss ?먮뒗 mm:ss)
   String get formattedCreatedElapsedTime {
     final duration = createdElapsedDuration;
 
@@ -159,60 +172,60 @@ class SystemLogEntity {
     return '$month/$day $hour:$minute';
   }
 
-  // ===== 비즈니스 로직 =====
+  // ===== 鍮꾩쫰?덉뒪 濡쒖쭅 =====
 
-  /// 헬스체크인지
+  /// ?ъ뒪泥댄겕?몄?
   bool get isHealthCheck => category.isHealthCheck;
 
-  /// 이벤트인지
+  /// ?대깽?몄씤吏
   bool get isEvent => category.isEvent;
 
-  /// 개발 환경인지
+  /// 媛쒕컻 ?섍꼍?몄?
   bool get isDevelopment => environment.isDevelopment;
 
-  /// 운영 환경인지
+  /// ?댁쁺 ?섍꼍?몄?
   bool get isProduction => environment.isProduction;
 
-  /// 대응 중인지
+  /// ???以묒씤吏
   bool get isBeingResponded =>
       responseStatus == ResponseStatus.inProgress && currentResponderId != null;
 
-  /// 미확인 상태인지
+  /// 誘명솗???곹깭?몄?
   bool get isUnchecked => responseStatus == ResponseStatus.unresponded;
 
-  /// 대응 완료인지
+  /// ????꾨즺?몄?
   bool get isCompleted => responseStatus == ResponseStatus.completed;
 
-  /// 알림이 필요한지 (warning 이상 + unchecked)
+  /// ?뚮┝???꾩슂?쒖? (warning ?댁긽 + unchecked)
   bool get needsNotification =>
       logLevel.needsNotification && responseStatus == ResponseStatus.unresponded;
 
-  /// 앱을 전면으로 띄워야 하는지
+  /// ?깆쓣 ?꾨㈃?쇰줈 ?꾩썙???섎뒗吏
   bool get needsForeground => logLevel.needsForeground;
 
-  /// 트레이 알림만 필요한지
+  /// ?몃젅???뚮┝留??꾩슂?쒖?
   bool get needsTrayOnly => logLevel.needsTrayOnly;
 
-  /// critical이고 미확인인지
+  /// critical?닿퀬 誘명솗?몄씤吏
   bool get isCriticalUnchecked =>
       logLevel == LogLevel.critical && responseStatus == ResponseStatus.unresponded;
 
-  /// 할당된 건인지 (관리자가 할당)
+  /// ?좊떦??嫄댁씤吏 (愿由ъ옄媛 ?좊떦)
   bool get isAssigned => assignedById != null;
 
-  /// 자원한 건인지 (본인이 대응 시작)
+  /// ?먯썝??嫄댁씤吏 (蹂몄씤??????쒖옉)
   bool get isVolunteered => isBeingResponded && assignedById == null;
 
-  /// 알림 무시 상태인지
+  /// ?뚮┝ 臾댁떆 ?곹깭?몄?
   bool get isMutedLog => isMuted == true;
 
-  /// 이슈 정보 요약 문자열 (알림용)
+  /// ?댁뒋 ?뺣낫 ?붿빟 臾몄옄??(?뚮┝??
   String get issueInfo {
     final buffer = StringBuffer();
-    buffer.write('출처: $source');
+    buffer.write('異쒖쿂: $source');
 
     if (code != null) {
-      buffer.write(' | 코드: $code');
+      buffer.write(' | 肄붾뱶: $code');
     }
 
     buffer.write(' | ${logLevel.label}');
