@@ -9,6 +9,16 @@ import 'package:window_app/domain/services/system_log_realtime_service.dart';
 part 'health_check_view_model.freezed.dart';
 part 'health_check_view_model.g.dart';
 
+/// 그룹핑 모드
+enum GroupingMode {
+  none('전체'),
+  bySource('소스별'),
+  bySite('사이트별');
+
+  final String label;
+  const GroupingMode(this.label);
+}
+
 /// 환경별 필터 상태
 @freezed
 abstract class EnvironmentFilterState with _$EnvironmentFilterState {
@@ -22,6 +32,7 @@ abstract class EnvironmentFilterState with _$EnvironmentFilterState {
     @Default({}) Set<LogLevel> selectedLogLevels,
     DateTime? startDate,
     DateTime? endDate,
+    @Default(GroupingMode.none) GroupingMode groupingMode,
   }) = _EnvironmentFilterState;
 }
 
@@ -71,6 +82,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
   Set<LogLevel> _prodSelectedLogLevels = {};
   DateTime? _prodStartDate;
   DateTime? _prodEndDate;
+  GroupingMode _prodGroupingMode = GroupingMode.none;
 
   // Development 필터 상태
   String? _devSelectedSource;
@@ -79,6 +91,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
   Set<LogLevel> _devSelectedLogLevels = {};
   DateTime? _devStartDate;
   DateTime? _devEndDate;
+  GroupingMode _devGroupingMode = GroupingMode.none;
 
   @override
   HealthCheckState build() {
@@ -109,6 +122,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
       selectedLogLevels: _prodSelectedLogLevels,
       startDate: _prodStartDate,
       endDate: _prodEndDate,
+      groupingMode: _prodGroupingMode,
     );
 
     // Development 필터 상태 생성
@@ -120,6 +134,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
       selectedLogLevels: _devSelectedLogLevels,
       startDate: _devStartDate,
       endDate: _devEndDate,
+      groupingMode: _devGroupingMode,
     );
 
     // 필터 적용된 로그
@@ -170,6 +185,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
     required Set<LogLevel> selectedLogLevels,
     required DateTime? startDate,
     required DateTime? endDate,
+    required GroupingMode groupingMode,
   }) {
     // 사용 가능한 source 목록 추출
     final sources = logs.map((e) => e.source).toSet().toList()..sort();
@@ -208,6 +224,7 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
       selectedLogLevels: selectedLogLevels,
       startDate: startDate,
       endDate: endDate,
+      groupingMode: groupingMode,
     );
   }
 
@@ -381,6 +398,16 @@ class HealthCheckViewModel extends _$HealthCheckViewModel {
       _devSelectedLogLevels = {};
       _devStartDate = null;
       _devEndDate = null;
+    }
+    ref.invalidateSelf();
+  }
+
+  /// 그룹핑 모드 설정
+  void setGroupingMode(Environment env, GroupingMode mode) {
+    if (env == Environment.production) {
+      _prodGroupingMode = mode;
+    } else {
+      _devGroupingMode = mode;
     }
     ref.invalidateSelf();
   }

@@ -1,10 +1,10 @@
-// Edge Function: kisane-datacenter-health
-// 설명: 기산 온프레미스 서버 헬스체크
+// Edge Function: iscan-keeper-web-health
+// 설명: iScan Keeper Web Embedded (Dashboard & Swagger) 헬스체크
 // JWT 검증: false (cron에서 호출)
-// 배포일: 2026-01-06
-// 스케줄: 매시간 정시 (cron: 0 * * * *)
-//          KST 00:00, 01:00, 02:00, ... 매시 정각
-// v12: source를 Kisane OnPremise Server로 변경
+// 배포일: 2026-01-15
+// 스케줄: 30분마다 (cron: 0,30 * * * *)
+//          KST 00:00, 00:30, 01:00, 01:30, ... 매시 0분, 30분
+// v3: site를 kisane-main으로 변경
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -14,10 +14,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TARGET_URL = "http://58.238.37.52:19900/api/server-status";
-const SOURCE_NAME = "Kisane OnPremise Server";
-const SITE_NAME = "kisane-seongnam";
-const SERVER_DESC = "성남 AI학습서버";
+const TARGET_URL = "http://58.238.37.52:60500";
+const SOURCE_NAME = "iScan Keeper Web Embedded (Dashboard & Swagger)";
+const SITE_NAME = "kisane-main";
+const SERVER_DESC = "iScan Keeper Dashboard & Swagger Web Server";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
 
   let isSuccess = false;
   let errorMessage = "";
-  let responseData = null;
+  let responseStatus = 0;
 
   try {
     const controller = new AbortController();
@@ -41,16 +41,10 @@ Deno.serve(async (req: Request) => {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    responseStatus = response.status;
 
     if (response.ok) {
-      const data = await response.json();
-      responseData = data;
-
-      if (data.status === "success") {
-        isSuccess = true;
-      } else {
-        errorMessage = `Unexpected status: ${data.status}`;
-      }
+      isSuccess = true;
     } else {
       errorMessage = `HTTP Error: ${response.status} ${response.statusText}`;
     }
@@ -74,7 +68,7 @@ Deno.serve(async (req: Request) => {
         category: "health_check",
         code: "OK",
         log_level: "info",
-        payload: responseData,
+        payload: { target_url: TARGET_URL, status_code: responseStatus },
         response_status: "completed",
       });
 

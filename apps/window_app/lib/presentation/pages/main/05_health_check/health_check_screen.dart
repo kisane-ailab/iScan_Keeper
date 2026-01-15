@@ -80,6 +80,15 @@ class HealthCheckScreen extends HookConsumerWidget {
             AdminLabel(),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.arrow_clockwise),
+            tooltip: '새로고침',
+            onPressed: () async {
+              await ref.read(systemLogRealtimeServiceProvider.notifier).refresh();
+            },
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
@@ -344,31 +353,58 @@ class _HealthCheckGrid extends HookConsumerWidget {
                         ),
                       ),
                     )
-                  : ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                  child: MasonryGridView.count(
-                    crossAxisCount: _getCrossAxisCount(context),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredLogs.length,
-                    itemBuilder: (context, index) {
-                      final log = filteredLogs[index];
-                      // 해당 source+site 조합의 전체 로그 (히스토리용) - 생성시간 내림차순
-                      final sourceSiteLogs = logs.where((l) {
-                        if (l.source != log.source) return false;
-                        // site가 둘 다 null이거나 같으면 매칭
-                        if (l.site == null && log.site == null) return true;
-                        return l.site == log.site;
-                      }).toList()
-                        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                      return _HealthStatusCard(
-                        entity: log,
-                        historyLogs: sourceSiteLogs,
-                        isAdmin: isAdmin,
-                      );
-                    },
-                  ),
+                  : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final crossAxisCount = _getCrossAxisCount(context);
+                    final padding = 16.0;
+                    final spacing = 12.0;
+                    final totalSpacing = spacing * (crossAxisCount - 1);
+                    final availableWidth = constraints.maxWidth - (padding * 2) - totalSpacing;
+                    final cardWidth = availableWidth / crossAxisCount;
+                    final filter = state.getFilterForEnvironment(environment);
+                    final groupingMode = filter.groupingMode;
+
+                    return ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(padding),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: groupingMode == GroupingMode.none
+                            ? Wrap(
+                                spacing: spacing,
+                                runSpacing: spacing,
+                                children: filteredLogs.map((log) {
+                                  // 해당 source+site 조합의 전체 로그 (히스토리용) - 생성시간 내림차순
+                                  final sourceSiteLogs = logs.where((l) {
+                                    if (l.source != log.source) return false;
+                                    // site가 둘 다 null이거나 같으면 매칭
+                                    if (l.site == null && log.site == null) return true;
+                                    return l.site == log.site;
+                                  }).toList()
+                                    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                                  return SizedBox(
+                                    width: cardWidth,
+                                    child: _HealthStatusCard(
+                                      entity: log,
+                                      historyLogs: sourceSiteLogs,
+                                      isAdmin: isAdmin,
+                                    ),
+                                  );
+                                }).toList(),
+                              )
+                            : _GroupedView(
+                                logs: filteredLogs,
+                                allLogs: logs,
+                                groupingMode: groupingMode,
+                                cardWidth: cardWidth,
+                                spacing: spacing,
+                                isAdmin: isAdmin,
+                              ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
         ),
       ],
@@ -507,6 +543,7 @@ class _SummaryHeader extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 첫 번째 행: 개수 + 정렬 + 네온 필터
           Row(
@@ -713,6 +750,50 @@ class _SummaryHeader extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 10),
+          // 세 번째 행: 그룹핑 모드 선택
+          Builder(
+            builder: (context) {
+              final filter = state.getFilterForEnvironment(environment);
+              return Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.square_grid_2x2,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '보기',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  CupertinoSlidingSegmentedControl<GroupingMode>(
+                    groupValue: filter.groupingMode,
+                    children: {
+                      for (final mode in GroupingMode.values)
+                        mode: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Text(
+                            mode.label,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                    },
+                    onValueChanged: (value) {
+                      if (value != null) {
+                        viewModel.setGroupingMode(environment, value);
+                      }
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -893,6 +974,131 @@ class _NeonFilterChip extends StatelessWidget {
   }
 }
 
+/// 그룹핑된 뷰
+class _GroupedView extends StatelessWidget {
+  const _GroupedView({
+    required this.logs,
+    required this.allLogs,
+    required this.groupingMode,
+    required this.cardWidth,
+    required this.spacing,
+    required this.isAdmin,
+  });
+
+  final List<SystemLogEntity> logs;
+  final List<SystemLogEntity> allLogs;
+  final GroupingMode groupingMode;
+  final double cardWidth;
+  final double spacing;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    // 그룹핑 키 추출
+    final Map<String, List<SystemLogEntity>> groups = {};
+
+    for (final log in logs) {
+      final key = groupingMode == GroupingMode.bySource
+          ? log.source
+          : (log.site ?? '(사이트 없음)');
+
+      if (!groups.containsKey(key)) {
+        groups[key] = [];
+      }
+      groups[key]!.add(log);
+    }
+
+    // 키 정렬
+    final sortedKeys = groups.keys.toList()..sort();
+
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: sortedKeys.map((key) {
+          final groupLogs = groups[key]!;
+          final icon = groupingMode == GroupingMode.bySource
+              ? CupertinoIcons.device_desktop
+              : CupertinoIcons.location;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 그룹 헤더
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey5.resolveFrom(context),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 14,
+                    color: CupertinoColors.label.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    key,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: CupertinoColors.label.resolveFrom(context),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${groupLogs.length}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 그룹 카드들
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: groupLogs.map((log) {
+                // 해당 source+site 조합의 전체 로그 (히스토리용) - 생성시간 내림차순
+                final sourceSiteLogs = allLogs.where((l) {
+                  if (l.source != log.source) return false;
+                  if (l.site == null && log.site == null) return true;
+                  return l.site == log.site;
+                }).toList()
+                  ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                return SizedBox(
+                  width: cardWidth,
+                  child: _HealthStatusCard(
+                    entity: log,
+                    historyLogs: sourceSiteLogs,
+                    isAdmin: isAdmin,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
+        );
+        }).toList(),
+      ),
+    );
+  }
+}
+
 /// 요약 칩 (기존 - 미사용)
 class _SummaryChip extends StatelessWidget {
   const _SummaryChip({
@@ -988,6 +1194,224 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 일별 상태 타임라인 (GitHub/Supabase 스타일)
+class _DailyStatusTimeline extends StatelessWidget {
+  const _DailyStatusTimeline({
+    required this.historyLogs,
+    required this.daysToShow,
+  });
+
+  final List<SystemLogEntity> historyLogs;
+  final int daysToShow;
+
+  /// 로그 레벨에 따른 색상 (심각도 순)
+  Color _getColorForLevel(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return const Color(0xFFDC143C); // 진한 빨강
+      case LogLevel.error:
+        return CupertinoColors.systemOrange;
+      case LogLevel.warning:
+        return const Color(0xFFFFCC00); // 노랑
+      case LogLevel.info:
+        return CupertinoColors.systemGreen;
+    }
+  }
+
+  /// 로그 레벨 우선순위 (높을수록 심각)
+  int _getLevelPriority(LogLevel level) {
+    switch (level) {
+      case LogLevel.critical:
+        return 4;
+      case LogLevel.error:
+        return 3;
+      case LogLevel.warning:
+        return 2;
+      case LogLevel.info:
+        return 1;
+    }
+  }
+
+  /// 특정 날짜의 최악 상태 계산
+  LogLevel? _getWorstLevelForDate(DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    final logsForDay = historyLogs.where((log) {
+      return log.createdAt.isAfter(dayStart) && log.createdAt.isBefore(dayEnd);
+    }).toList();
+
+    if (logsForDay.isEmpty) return null;
+
+    return logsForDay.reduce((a, b) {
+      return _getLevelPriority(a.logLevel) >= _getLevelPriority(b.logLevel) ? a : b;
+    }).logLevel;
+  }
+
+  /// 날짜별 로그 개수
+  int _getLogCountForDate(DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    return historyLogs.where((log) {
+      return log.createdAt.isAfter(dayStart) && log.createdAt.isBefore(dayEnd);
+    }).length;
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.month}/${date.day}';
+  }
+
+  String _getLevelLabel(LogLevel? level) {
+    if (level == null) return '데이터 없음';
+    switch (level) {
+      case LogLevel.critical:
+        return '심각';
+      case LogLevel.error:
+        return '오류';
+      case LogLevel.warning:
+        return '경고';
+      case LogLevel.info:
+        return '정상';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final days = List.generate(daysToShow, (i) {
+      return DateTime(now.year, now.month, now.day).subtract(Duration(days: daysToShow - 1 - i));
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 헤더
+        Row(
+          children: [
+            Icon(
+              CupertinoIcons.chart_bar_alt_fill,
+              size: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '최근 $daysToShow일',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // 타임라인 박스들
+        Row(
+          children: days.map((date) {
+            final worstLevel = _getWorstLevelForDate(date);
+            final logCount = _getLogCountForDate(date);
+            final color = worstLevel != null
+                ? _getColorForLevel(worstLevel)
+                : CupertinoColors.systemGrey4.resolveFrom(context);
+            final isToday = date.day == now.day &&
+                           date.month == now.month &&
+                           date.year == now.year;
+
+            return Expanded(
+              child: Tooltip(
+                message: '${_formatDate(date)} - ${_getLevelLabel(worstLevel)}${logCount > 0 ? ' ($logCount건)' : ''}',
+                preferBelow: false,
+                child: Container(
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: worstLevel != null ? 0.85 : 0.3),
+                    borderRadius: BorderRadius.circular(3),
+                    border: isToday
+                        ? Border.all(
+                            color: CupertinoColors.label.resolveFrom(context),
+                            width: 1.5,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        // 범례
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            _LegendItem(
+              color: CupertinoColors.systemGrey4.resolveFrom(context),
+              label: '없음',
+            ),
+            const SizedBox(width: 8),
+            _LegendItem(
+              color: CupertinoColors.systemGreen,
+              label: '정상',
+            ),
+            const SizedBox(width: 8),
+            _LegendItem(
+              color: const Color(0xFFFFCC00),
+              label: '경고',
+            ),
+            const SizedBox(width: 8),
+            _LegendItem(
+              color: CupertinoColors.systemOrange,
+              label: '오류',
+            ),
+            const SizedBox(width: 8),
+            _LegendItem(
+              color: const Color(0xFFDC143C),
+              label: '심각',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 범례 아이템
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.label,
+  });
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1348,29 +1772,33 @@ class _HealthStatusCard extends HookConsumerWidget {
                                   ),
                                 ),
                         ),
-                        // 확장 영역 (고정 높이, 스크롤 가능) - flutter_animate 사용
+                        // 일별 상태 타임라인 (GitHub/Supabase 스타일)
+                        const SizedBox(height: 12),
+                        _DailyStatusTimeline(
+                          historyLogs: historyLogs,
+                          daysToShow: 14,
+                        ),
+                        // 확장 영역 (최대 높이 제한, 내용에 맞게 축소) - flutter_animate 사용
                         if (isExpanded.value)
-                          Container(
-                            height: 180,
-                            margin: const EdgeInsets.only(top: 12),
-                            padding: const EdgeInsets.only(left: 12, top: 12, bottom: 12),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemGrey6.resolveFrom(context),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                scrollbarTheme: ScrollbarThemeData(
-                                  thumbColor: WidgetStateProperty.all(
-                                    CupertinoColors.systemGrey.withValues(alpha: 0.6),
-                                  ),
-                                  thickness: WidgetStateProperty.all(6),
-                                  radius: const Radius.circular(3),
-                                ),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 180),
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 12),
+                              padding: const EdgeInsets.only(left: 12, top: 12, bottom: 12),
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Scrollbar(
-                                controller: scrollController,
-                                thumbVisibility: true,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  scrollbarTheme: ScrollbarThemeData(
+                                    thumbColor: WidgetStateProperty.all(
+                                      CupertinoColors.systemGrey.withValues(alpha: 0.6),
+                                    ),
+                                    thickness: WidgetStateProperty.all(6),
+                                    radius: const Radius.circular(3),
+                                  ),
+                                ),
                                 child: SingleChildScrollView(
                                   controller: scrollController,
                                   physics: const ClampingScrollPhysics(),

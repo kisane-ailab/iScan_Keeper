@@ -1,10 +1,9 @@
-// Edge Function: kisane-datacenter-health
-// 설명: 기산 온프레미스 서버 헬스체크
+// Edge Function: kisane-inference-health
+// 설명: 별관 추론서버 SSH 포트 헬스체크
 // JWT 검증: false (cron에서 호출)
-// 배포일: 2026-01-06
-// 스케줄: 매시간 정시 (cron: 0 * * * *)
-//          KST 00:00, 01:00, 02:00, ... 매시 정각
-// v12: source를 Kisane OnPremise Server로 변경
+// 배포일: 2026-01-15
+// 스케줄: 30분마다 (cron: 0,30 * * * *)
+// v3: 타임아웃 10초, 실패시 error 레벨로 통일
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -14,10 +13,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TARGET_URL = "http://58.238.37.52:19900/api/server-status";
-const SOURCE_NAME = "Kisane OnPremise Server";
-const SITE_NAME = "kisane-seongnam";
-const SERVER_DESC = "성남 AI학습서버";
+const TARGET_HOST = "58.238.37.52";
+const TARGET_PORT = 22222;
+const TIMEOUT_MS = 10000; // 10초 타임아웃
+const SOURCE_NAME = "Inference Server";
+const SITE_NAME = "kisane-main";
+const SERVER_DESC = "별관 추론서버 (Annex Inference Server)";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -30,39 +31,25 @@ Deno.serve(async (req: Request) => {
 
   let isSuccess = false;
   let errorMessage = "";
-  let responseData = null;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // TCP 연결 시도 (타임아웃 포함)
+    const conn = await Promise.race([
+      Deno.connect({ hostname: TARGET_HOST, port: TARGET_PORT }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Connection timeout (10s)")), TIMEOUT_MS)
+      ),
+    ]);
 
-    const response = await fetch(TARGET_URL, {
-      method: "GET",
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      responseData = data;
-
-      if (data.status === "success") {
-        isSuccess = true;
-      } else {
-        errorMessage = `Unexpected status: ${data.status}`;
-      }
-    } else {
-      errorMessage = `HTTP Error: ${response.status} ${response.statusText}`;
-    }
+    // 연결 성공 시 바로 닫기
+    (conn as Deno.Conn).close();
+    isSuccess = true;
   } catch (err) {
-    if (err.name === "AbortError") {
-      errorMessage = "Request timeout (10s)";
-    } else {
-      errorMessage = `Connection error: ${err.message}`;
-    }
+    errorMessage = err.message || "Unknown connection error";
   }
 
-  const descWithEndpoint = `${SERVER_DESC} | ${TARGET_URL}`;
+  const targetDesc = `${TARGET_HOST}:${TARGET_PORT}`;
+  const descWithEndpoint = `${SERVER_DESC} | ${targetDesc}`;
 
   if (isSuccess) {
     await supabase
@@ -74,7 +61,7 @@ Deno.serve(async (req: Request) => {
         category: "health_check",
         code: "OK",
         log_level: "info",
-        payload: responseData,
+        payload: { target_host: TARGET_HOST, target_port: TARGET_PORT },
         response_status: "completed",
       });
 
@@ -83,7 +70,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } else {
-    const failDesc = `${SERVER_DESC} | ${TARGET_URL} | ${errorMessage}`;
+    const failDesc = `${SERVER_DESC} | ${targetDesc} | ${errorMessage}`;
 
     await supabase
       .from("system_logs")
@@ -94,7 +81,7 @@ Deno.serve(async (req: Request) => {
         category: "health_check",
         code: "FAIL",
         log_level: "error",
-        payload: { target_url: TARGET_URL, error: errorMessage },
+        payload: { target_host: TARGET_HOST, target_port: TARGET_PORT, error: errorMessage },
         response_status: "unresponded",
       });
 
