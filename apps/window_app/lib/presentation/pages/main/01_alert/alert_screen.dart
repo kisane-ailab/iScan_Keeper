@@ -20,6 +20,8 @@ import 'package:window_app/domain/services/notification_settings_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
+import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart'
+    show GroupingMode;
 import 'package:window_app/presentation/widgets/admin_label.dart';
 import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
@@ -76,6 +78,15 @@ class AlertScreen extends HookConsumerWidget {
             AdminLabel(),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.arrow_clockwise),
+            tooltip: '새로고침',
+            onPressed: () async {
+              await ref.read(systemLogRealtimeServiceProvider.notifier).refresh();
+            },
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
@@ -294,6 +305,7 @@ class _SummaryHeader extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 첫 번째 행: 개수 + 정렬 + 네온 필터
           Row(
@@ -495,6 +507,50 @@ class _SummaryHeader extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          // 세 번째 행: 그룹핑 모드 선택
+          Builder(
+            builder: (context) {
+              final filter = state.getFilterForEnvironment(environment);
+              return Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.square_grid_2x2,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '보기',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  CupertinoSlidingSegmentedControl<GroupingMode>(
+                    groupValue: filter.groupingMode,
+                    children: {
+                      for (final mode in GroupingMode.values)
+                        mode: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Text(
+                            mode.label,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                    },
+                    onValueChanged: (value) {
+                      if (value != null) {
+                        viewModel.setGroupingMode(environment, value);
+                      }
+                    },
                   ),
                 ],
               );
@@ -996,22 +1052,42 @@ class _AlertTabContent extends HookConsumerWidget {
                         ),
                       ),
                     )
-                  : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sortedLogs.length,
-                  itemBuilder: (context, index) {
-                    final entity = sortedLogs[index];
-                    return _LogCard(
-                      entity: entity,
-                      onRespond: () =>
-                          _showResponseDialog(context, ref, entity),
-                      onAbandon: () => _abandonResponse(context, ref, entity),
-                      onComplete: () =>
-                          _showCompleteDialog(context, ref, entity),
-                      onAssign: isAdmin
-                          ? () => _showAssignDialog(context, ref, entity)
-                          : null,
+                  : Builder(
+                  builder: (context) {
+                    final filter = state.getFilterForEnvironment(environment);
+                    final groupingMode = filter.groupingMode;
+
+                    if (groupingMode == GroupingMode.none) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: sortedLogs.length,
+                        itemBuilder: (context, index) {
+                          final entity = sortedLogs[index];
+                          return _LogCard(
+                            entity: entity,
+                            onRespond: () =>
+                                _showResponseDialog(context, ref, entity),
+                            onAbandon: () => _abandonResponse(context, ref, entity),
+                            onComplete: () =>
+                                _showCompleteDialog(context, ref, entity),
+                            onAssign: isAdmin
+                                ? () => _showAssignDialog(context, ref, entity)
+                                : null,
+                            isAdmin: isAdmin,
+                          );
+                        },
+                      );
+                    }
+
+                    // 그룹핑 모드
+                    return _AlertGroupedView(
+                      logs: sortedLogs,
+                      groupingMode: groupingMode,
                       isAdmin: isAdmin,
+                      onRespond: (entity) => _showResponseDialog(context, ref, entity),
+                      onAbandon: (entity) => _abandonResponse(context, ref, entity),
+                      onComplete: (entity) => _showCompleteDialog(context, ref, entity),
+                      onAssign: isAdmin ? (entity) => _showAssignDialog(context, ref, entity) : null,
                     );
                   },
                 ),
@@ -1874,10 +1950,8 @@ class _LogCard extends HookConsumerWidget {
             child: SelectionArea(
       child: GestureDetector(
         onTap: () => isExpanded.value = !isExpanded.value,
-        child: Opacity(
-          opacity: isRead ? 0.6 : 1.0,
-          child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground.resolveFrom(context),
           borderRadius: BorderRadius.circular(14),
@@ -2153,6 +2227,27 @@ class _LogCard extends HookConsumerWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                // 읽음/안읽음 뱃지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isRead
+                        ? CupertinoColors.systemGrey.withValues(alpha: 0.15)
+                        : CupertinoColors.systemPurple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isRead ? '읽음' : '안읽음',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isRead
+                          ? CupertinoColors.systemGrey
+                          : CupertinoColors.systemPurple,
+                    ),
+                  ),
+                ),
                 // 대응자 정보 + 경과시간
                 if (entity.isBeingResponded &&
                     entity.currentResponderName != null) ...[
@@ -2248,14 +2343,14 @@ class _LogCard extends HookConsumerWidget {
               ],
             ),
 
-            // 액션 버튼
-            if (entity.isUnchecked ||
+            // 액션 버튼 (정보/경고 레벨은 대응하기 버튼 제외)
+            if ((entity.isUnchecked && (entity.logLevel == LogLevel.critical || entity.logLevel == LogLevel.error)) ||
                 (entity.isBeingResponded && isMyResponse)) ...[
               const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (entity.isUnchecked)
+                  if (entity.isUnchecked && (entity.logLevel == LogLevel.critical || entity.logLevel == LogLevel.error))
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       color: levelColor,
@@ -2366,7 +2461,7 @@ class _LogCard extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    isExpanded.value ? '접기' : '페이로드 보기',
+                    isExpanded.value ? '접기' : '상세보기',
                     style: TextStyle(
                       fontSize: 11,
                       color: CupertinoColors.tertiaryLabel.resolveFrom(context),
@@ -2382,35 +2477,12 @@ class _LogCard extends HookConsumerWidget {
       ),
       ),
       ),
-      ),
         ),
       ),
     );
   }
 
   Widget _buildPayloadSection(BuildContext context) {
-    if (entity.payload.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey6.resolveFrom(context),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '페이로드 없음',
-            style: TextStyle(
-              fontSize: 12,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ),
-      );
-    }
-
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Container(
@@ -2427,44 +2499,242 @@ class _LogCard extends HookConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 소스 정보
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.device_desktop,
+              label: '소스',
+              value: entity.source,
+            ),
+            const SizedBox(height: 8),
+            // 사이트 정보
+            if (entity.site != null) ...[
+              _buildDetailRow(
+                context,
+                icon: CupertinoIcons.location,
+                label: '사이트',
+                value: entity.site!,
+              ),
+              const SizedBox(height: 8),
+            ],
+            // 코드 정보
+            if (entity.code != null) ...[
+              _buildDetailRow(
+                context,
+                icon: CupertinoIcons.tag,
+                label: '코드',
+                value: entity.code!,
+              ),
+              const SizedBox(height: 8),
+            ],
+            // 시간 정보
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.clock,
+              label: '발생 시간',
+              value: entity.formattedCreatedAt,
+            ),
+            const SizedBox(height: 8),
+            // 설명
+            if (entity.description != null && entity.description!.isNotEmpty) ...[
+              _buildDetailRow(
+                context,
+                icon: CupertinoIcons.doc_text,
+                label: '설명',
+                value: entity.description!,
+              ),
+              const SizedBox(height: 8),
+            ],
+            // 전송 데이터 (Payload)
+            const SizedBox(height: 4),
             Row(
               children: [
                 Icon(
-                  CupertinoIcons.doc_text,
-                  size: 14,
+                  CupertinoIcons.paperclip,
+                  size: 12,
                   color: CupertinoColors.secondaryLabel.resolveFrom(context),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Payload',
+                  '전송 데이터',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: CupertinoColors.systemBackground.resolveFrom(context),
                 borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: CupertinoColors.separator.resolveFrom(context),
+                  width: 0.5,
+                ),
               ),
               child: Text(
-                _formatPayload(entity.payload),
+                entity.payload.isEmpty
+                    ? '{}'
+                    : _formatPayload(entity.payload),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontFamily: 'monospace',
                   color: CupertinoColors.label.resolveFrom(context),
                 ),
+                maxLines: 8,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 첨부 자료 (Attachments)
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.folder,
+                  size: 12,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '첨부 자료',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemBackground.resolveFrom(context),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: CupertinoColors.separator.resolveFrom(context),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                entity.attachments.isEmpty
+                    ? '{}'
+                    : _formatPayload(entity.attachments),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  color: CupertinoColors.label.resolveFrom(context),
+                ),
+                maxLines: 8,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 복사 버튼
+            GestureDetector(
+              onTap: () {
+                final buffer = StringBuffer();
+                buffer.writeln('[${entity.source}${entity.site != null ? ' - ${entity.site}' : ''}]');
+                buffer.writeln('시간: ${entity.formattedCreatedAt}');
+                buffer.writeln('레벨: ${entity.logLevel.label}');
+                buffer.writeln('상태: ${entity.responseStatus.label}');
+                if (entity.code != null) buffer.writeln('코드: ${entity.code}');
+                if (entity.description != null && entity.description!.isNotEmpty) {
+                  buffer.writeln('설명: ${entity.description}');
+                }
+                buffer.writeln('');
+                buffer.writeln('전송 데이터:');
+                buffer.writeln(entity.payload.isEmpty
+                    ? '{}'
+                    : _formatPayload(entity.payload));
+                buffer.writeln('');
+                buffer.writeln('첨부 자료:');
+                buffer.writeln(entity.attachments.isEmpty
+                    ? '{}'
+                    : _formatPayload(entity.attachments));
+                Clipboard.setData(ClipboardData(text: buffer.toString()));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.checkmark_circle_fill, color: CupertinoColors.white, size: 16),
+                        const SizedBox(width: 8),
+                        const Text('복사됨', style: TextStyle(color: CupertinoColors.white)),
+                      ],
+                    ),
+                    backgroundColor: CupertinoColors.systemGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.doc_on_clipboard,
+                    size: 12,
+                    color: CupertinoColors.systemBlue,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '복사',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.systemBlue,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 12,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 11,
+              color: CupertinoColors.label.resolveFrom(context),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2475,5 +2745,121 @@ class _LogCard extends HookConsumerWidget {
     } catch (e) {
       return payload.toString();
     }
+  }
+}
+
+/// 그룹핑된 뷰 (Alert용)
+class _AlertGroupedView extends StatelessWidget {
+  const _AlertGroupedView({
+    required this.logs,
+    required this.groupingMode,
+    required this.isAdmin,
+    required this.onRespond,
+    required this.onAbandon,
+    required this.onComplete,
+    this.onAssign,
+  });
+
+  final List<SystemLogEntity> logs;
+  final GroupingMode groupingMode;
+  final bool isAdmin;
+  final void Function(SystemLogEntity) onRespond;
+  final void Function(SystemLogEntity) onAbandon;
+  final void Function(SystemLogEntity) onComplete;
+  final void Function(SystemLogEntity)? onAssign;
+
+  @override
+  Widget build(BuildContext context) {
+    // 그룹핑 키 추출
+    final Map<String, List<SystemLogEntity>> groups = {};
+
+    for (final log in logs) {
+      final key = groupingMode == GroupingMode.bySource
+          ? log.source
+          : (log.site ?? '(사이트 없음)');
+
+      if (!groups.containsKey(key)) {
+        groups[key] = [];
+      }
+      groups[key]!.add(log);
+    }
+
+    // 키 정렬
+    final sortedKeys = groups.keys.toList()..sort();
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: sortedKeys.length,
+      itemBuilder: (context, index) {
+        final key = sortedKeys[index];
+        final groupLogs = groups[key]!;
+        final icon = groupingMode == GroupingMode.bySource
+            ? CupertinoIcons.device_desktop
+            : CupertinoIcons.location;
+
+        return SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 그룹 헤더
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey5.resolveFrom(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 14,
+                      color: CupertinoColors.label.resolveFrom(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      key,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${groupLogs.length}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.systemBlue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 그룹 카드들
+              ...groupLogs.map((entity) => _LogCard(
+                entity: entity,
+                onRespond: () => onRespond(entity),
+                onAbandon: () => onAbandon(entity),
+                onComplete: () => onComplete(entity),
+                onAssign: onAssign != null ? () => onAssign!(entity) : null,
+                isAdmin: isAdmin,
+              )),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

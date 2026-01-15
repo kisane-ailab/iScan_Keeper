@@ -320,6 +320,12 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     state = [];
   }
 
+  /// 로그 새로고침 (수동 리프레시)
+  Future<void> refresh() async {
+    _logger.i('수동 새로고침 시작');
+    await _fetchInitialLogs();
+  }
+
   /// 개별 로그 mute 설정
   Future<void> setLogMuted(String id, bool muted) async {
     try {
