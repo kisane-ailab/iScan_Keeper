@@ -121,6 +121,42 @@ curl -X POST https://<PROJECT_REF>.supabase.co/functions/v1/system-logs \
 
 ---
 
+## 크론잡 (Scheduled Jobs)
+
+### compress-health-check-logs
+헬스체크 로그 압축 작업
+
+| 항목 | 값 |
+|------|------|
+| **스케줄** | 매일 00:05 (KST) / 15:05 (UTC) |
+| **함수** | `compress_health_check_logs()` |
+
+#### 압축 규칙
+- **대상**: `category = 'health_check'` 중 `log_level = 'info'` 로그만
+- **그룹**: `source` + `site` + `날짜` 기준
+- **결과**: info 로그는 마지막(최신) 1개만 유지, 나머지 삭제
+- **보존**: `warning`, `error`, `critical` 로그는 **절대 삭제하지 않음**
+
+#### 수동 실행
+```sql
+-- 압축 실행 (삭제 건수, 압축된 그룹 수 반환)
+select * from compress_health_check_logs();
+```
+
+#### 크론잡 관리
+```sql
+-- 크론잡 목록 확인
+select * from cron.job;
+
+-- 실행 기록 확인
+select * from cron.job_run_details order by start_time desc limit 10;
+
+-- 크론잡 비활성화/삭제
+select cron.unschedule('compress-health-check-logs');
+```
+
+---
+
 ## 현재 설정 요약
 
 | 항목 | 설정 |

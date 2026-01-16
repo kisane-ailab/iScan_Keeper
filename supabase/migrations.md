@@ -23,3 +23,14 @@
 | 20260108090516 | add_environment_to_system_logs |
 | 20260113053857 | add_assigned_by_columns |
 | 20260113053923 | update_user_status_enum_v2 |
+| 20260113081622 | add_is_muted_to_system_logs |
+| 20260113110118 | add_updated_at_to_system_logs |
+| 20260114023247 | add_site_column_to_system_logs |
+| 20260114023448 | add_site_auto_fill_trigger |
+| 20260116061438 | add_health_check_log_compression |
+
+## 크론잡 목록
+
+| 이름 | 스케줄 | 설명 |
+|------|--------|------|
+| compress-health-check-logs | 매일 00:05 (KST) | 헬스체크 로그 압축 (정상 로그만 마지막 1개 유지) |
