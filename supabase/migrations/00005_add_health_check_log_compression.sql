@@ -20,7 +20,11 @@ as $$
 declare
   v_deleted_count bigint := 0;
   v_compressed_groups bigint := 0;
+  v_target_date date;
 begin
+  -- KST 기준 어제 날짜 계산 (타임존 버그 수정)
+  v_target_date := date((now() at time zone 'Asia/Seoul') - interval '1 day');
+
   with daily_info_groups as (
     -- 어제 날짜의 헬스체크 로그 중 info만 source + site로 그룹화
     select
@@ -33,7 +37,7 @@ begin
     where
       category = 'health_check'
       and log_level = 'info'  -- info만 대상
-      and date(created_at at time zone 'Asia/Seoul') = (current_date at time zone 'Asia/Seoul') - interval '1 day'
+      and date(created_at at time zone 'Asia/Seoul') = v_target_date
     group by source, site, date(created_at at time zone 'Asia/Seoul')
   ),
   logs_to_delete as (
@@ -58,7 +62,7 @@ begin
     where
       category = 'health_check'
       and log_level = 'info'
-      and date(created_at at time zone 'Asia/Seoul') = (current_date at time zone 'Asia/Seoul') - interval '1 day'
+      and date(created_at at time zone 'Asia/Seoul') = v_target_date
     group by source, site, date(created_at at time zone 'Asia/Seoul')
     having count(*) > 1
   ) t;
