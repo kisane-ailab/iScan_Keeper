@@ -1252,14 +1252,39 @@ class _DailyStatusTimeline extends StatelessWidget {
     }).logLevel;
   }
 
-  /// 날짜별 로그 개수
-  int _getLogCountForDate(DateTime date) {
+  /// 날짜별 로그 레벨별 개수 (심각 > 오류 > 경고 > 정상 순으로 표시)
+  String _getLogCountsByLevelForDate(DateTime date) {
     final dayStart = DateTime(date.year, date.month, date.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
 
-    return historyLogs.where((log) {
+    final logsForDay = historyLogs.where((log) {
       return log.createdAt.isAfter(dayStart) && log.createdAt.isBefore(dayEnd);
-    }).length;
+    }).toList();
+
+    if (logsForDay.isEmpty) return '';
+
+    // 레벨별 카운트
+    final counts = <LogLevel, int>{};
+    for (final log in logsForDay) {
+      counts[log.logLevel] = (counts[log.logLevel] ?? 0) + 1;
+    }
+
+    // 우선순위 순으로 정렬 (심각 > 오류 > 경고 > 정상)
+    final orderedLevels = [
+      LogLevel.critical,
+      LogLevel.error,
+      LogLevel.warning,
+      LogLevel.info,
+    ];
+
+    final parts = <String>[];
+    for (final level in orderedLevels) {
+      if (counts.containsKey(level) && counts[level]! > 0) {
+        parts.add('${_getLevelLabel(level)}(${counts[level]}건)');
+      }
+    }
+
+    return parts.join(' ');
   }
 
   String _formatDate(DateTime date) {
@@ -1314,7 +1339,7 @@ class _DailyStatusTimeline extends StatelessWidget {
         Row(
           children: days.map((date) {
             final worstLevel = _getWorstLevelForDate(date);
-            final logCount = _getLogCountForDate(date);
+            final levelCounts = _getLogCountsByLevelForDate(date);
             final color = worstLevel != null
                 ? _getColorForLevel(worstLevel)
                 : CupertinoColors.systemGrey4.resolveFrom(context);
@@ -1324,7 +1349,7 @@ class _DailyStatusTimeline extends StatelessWidget {
 
             return Expanded(
               child: Tooltip(
-                message: '${_formatDate(date)} - ${_getLevelLabel(worstLevel)}${logCount > 0 ? ' ($logCount건)' : ''}',
+                message: '${_formatDate(date)}${levelCounts.isNotEmpty ? ' - $levelCounts' : ' - 데이터 없음'}',
                 preferBelow: false,
                 child: Container(
                   height: 24,
