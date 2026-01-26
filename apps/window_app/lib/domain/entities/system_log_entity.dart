@@ -169,7 +169,8 @@ class SystemLogEntity {
     final day = dt.day.toString().padLeft(2, '0');
     final hour = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
-    return '$month/$day $hour:$minute';
+    final second = dt.second.toString().padLeft(2, '0');
+    return '$month/$day $hour:$minute:$second';
   }
 
   // ===== 비즈니스 로직 =====
