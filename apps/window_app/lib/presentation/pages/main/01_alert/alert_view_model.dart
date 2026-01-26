@@ -25,6 +25,8 @@ abstract class EnvironmentFilterState with _$EnvironmentFilterState {
     DateTime? startDate,
     DateTime? endDate,
     @Default(GroupingMode.none) GroupingMode groupingMode,
+    /// 접힌 그룹 목록 (사이트명 또는 소스명)
+    @Default({}) Set<String> collapsedGroups,
   }) = _EnvironmentFilterState;
 }
 
@@ -78,6 +80,7 @@ class AlertViewModel extends _$AlertViewModel {
   DateTime? _prodStartDate;
   DateTime? _prodEndDate;
   GroupingMode _prodGroupingMode = GroupingMode.none;
+  Set<String> _prodCollapsedGroups = {};
 
   // Development 필터 상태
   String? _devSelectedSource;
@@ -87,6 +90,7 @@ class AlertViewModel extends _$AlertViewModel {
   DateTime? _devStartDate;
   DateTime? _devEndDate;
   GroupingMode _devGroupingMode = GroupingMode.none;
+  Set<String> _devCollapsedGroups = {};
 
   @override
   AlertState build() {
@@ -118,6 +122,7 @@ class AlertViewModel extends _$AlertViewModel {
       startDate: _prodStartDate,
       endDate: _prodEndDate,
       groupingMode: _prodGroupingMode,
+      collapsedGroups: _prodCollapsedGroups,
     );
 
     // Development 필터 상태 생성
@@ -130,6 +135,7 @@ class AlertViewModel extends _$AlertViewModel {
       startDate: _devStartDate,
       endDate: _devEndDate,
       groupingMode: _devGroupingMode,
+      collapsedGroups: _devCollapsedGroups,
     );
 
     // 필터 적용된 로그
@@ -181,6 +187,7 @@ class AlertViewModel extends _$AlertViewModel {
     required DateTime? startDate,
     required DateTime? endDate,
     required GroupingMode groupingMode,
+    required Set<String> collapsedGroups,
   }) {
     // 사용 가능한 source 목록 추출
     final sources = logs.map((e) => e.source).toSet().toList()..sort();
@@ -220,6 +227,7 @@ class AlertViewModel extends _$AlertViewModel {
       startDate: startDate,
       endDate: endDate,
       groupingMode: groupingMode,
+      collapsedGroups: collapsedGroups,
     );
   }
 
@@ -414,8 +422,62 @@ class AlertViewModel extends _$AlertViewModel {
   void setGroupingMode(Environment env, GroupingMode mode) {
     if (env == Environment.production) {
       _prodGroupingMode = mode;
+      // 그룹핑 모드 변경 시 접힌 그룹 초기화
+      _prodCollapsedGroups = {};
     } else {
       _devGroupingMode = mode;
+      _devCollapsedGroups = {};
+    }
+    ref.invalidateSelf();
+  }
+
+  /// 그룹 접기/펼치기 토글
+  void toggleGroupCollapse(Environment env, String groupKey) {
+    if (env == Environment.production) {
+      if (_prodCollapsedGroups.contains(groupKey)) {
+        _prodCollapsedGroups = {..._prodCollapsedGroups}..remove(groupKey);
+      } else {
+        _prodCollapsedGroups = {..._prodCollapsedGroups, groupKey};
+      }
+    } else {
+      if (_devCollapsedGroups.contains(groupKey)) {
+        _devCollapsedGroups = {..._devCollapsedGroups}..remove(groupKey);
+      } else {
+        _devCollapsedGroups = {..._devCollapsedGroups, groupKey};
+      }
+    }
+    ref.invalidateSelf();
+  }
+
+  /// 모든 그룹 접기
+  void collapseAllGroups(Environment env) {
+    final logs = env == Environment.production
+        ? state.productionLogs
+        : state.developmentLogs;
+    final groupingMode = env == Environment.production
+        ? _prodGroupingMode
+        : _devGroupingMode;
+
+    final allGroups = logs
+        .map((e) => groupingMode == GroupingMode.bySource
+            ? e.source
+            : (e.site ?? '(사이트 없음)'))
+        .toSet();
+
+    if (env == Environment.production) {
+      _prodCollapsedGroups = allGroups;
+    } else {
+      _devCollapsedGroups = allGroups;
+    }
+    ref.invalidateSelf();
+  }
+
+  /// 모든 그룹 펼치기
+  void expandAllGroups(Environment env) {
+    if (env == Environment.production) {
+      _prodCollapsedGroups = {};
+    } else {
+      _devCollapsedGroups = {};
     }
     ref.invalidateSelf();
   }

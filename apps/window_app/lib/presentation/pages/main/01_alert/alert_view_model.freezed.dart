@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$EnvironmentFilterState {
 
- List<String> get availableSources; List<String> get availableSites; List<String> get availableCodes; String? get selectedSource; String? get selectedSite; String? get selectedCode; Set<LogLevel> get selectedLogLevels; DateTime? get startDate; DateTime? get endDate; GroupingMode get groupingMode;
+ List<String> get availableSources; List<String> get availableSites; List<String> get availableCodes; String? get selectedSource; String? get selectedSite; String? get selectedCode; Set<LogLevel> get selectedLogLevels; DateTime? get startDate; DateTime? get endDate; GroupingMode get groupingMode;/// 접힌 그룹 목록 (사이트명 또는 소스명)
+ Set<String> get collapsedGroups;
 /// Create a copy of EnvironmentFilterState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $EnvironmentFilterStateCopyWith<EnvironmentFilterState> get copyWith => _$Enviro
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnvironmentFilterState&&const DeepCollectionEquality().equals(other.availableSources, availableSources)&&const DeepCollectionEquality().equals(other.availableSites, availableSites)&&const DeepCollectionEquality().equals(other.availableCodes, availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedSite, selectedSite) || other.selectedSite == selectedSite)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other.selectedLogLevels, selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.groupingMode, groupingMode) || other.groupingMode == groupingMode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnvironmentFilterState&&const DeepCollectionEquality().equals(other.availableSources, availableSources)&&const DeepCollectionEquality().equals(other.availableSites, availableSites)&&const DeepCollectionEquality().equals(other.availableCodes, availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedSite, selectedSite) || other.selectedSite == selectedSite)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other.selectedLogLevels, selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.groupingMode, groupingMode) || other.groupingMode == groupingMode)&&const DeepCollectionEquality().equals(other.collapsedGroups, collapsedGroups));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(availableSources),const DeepCollectionEquality().hash(availableSites),const DeepCollectionEquality().hash(availableCodes),selectedSource,selectedSite,selectedCode,const DeepCollectionEquality().hash(selectedLogLevels),startDate,endDate,groupingMode);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(availableSources),const DeepCollectionEquality().hash(availableSites),const DeepCollectionEquality().hash(availableCodes),selectedSource,selectedSite,selectedCode,const DeepCollectionEquality().hash(selectedLogLevels),startDate,endDate,groupingMode,const DeepCollectionEquality().hash(collapsedGroups));
 
 @override
 String toString() {
-  return 'EnvironmentFilterState(availableSources: $availableSources, availableSites: $availableSites, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedSite: $selectedSite, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate, groupingMode: $groupingMode)';
+  return 'EnvironmentFilterState(availableSources: $availableSources, availableSites: $availableSites, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedSite: $selectedSite, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate, groupingMode: $groupingMode, collapsedGroups: $collapsedGroups)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $EnvironmentFilterStateCopyWith<$Res>  {
   factory $EnvironmentFilterStateCopyWith(EnvironmentFilterState value, $Res Function(EnvironmentFilterState) _then) = _$EnvironmentFilterStateCopyWithImpl;
 @useResult
 $Res call({
- List<String> availableSources, List<String> availableSites, List<String> availableCodes, String? selectedSource, String? selectedSite, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate, GroupingMode groupingMode
+ List<String> availableSources, List<String> availableSites, List<String> availableCodes, String? selectedSource, String? selectedSite, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate, GroupingMode groupingMode, Set<String> collapsedGroups
 });
 
 
@@ -62,7 +63,7 @@ class _$EnvironmentFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of EnvironmentFilterState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? availableSources = null,Object? availableSites = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedSite = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,Object? groupingMode = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? availableSources = null,Object? availableSites = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedSite = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,Object? groupingMode = null,Object? collapsedGroups = null,}) {
   return _then(_self.copyWith(
 availableSources: null == availableSources ? _self.availableSources : availableSources // ignore: cast_nullable_to_non_nullable
 as List<String>,availableSites: null == availableSites ? _self.availableSites : availableSites // ignore: cast_nullable_to_non_nullable
@@ -74,7 +75,8 @@ as String?,selectedLogLevels: null == selectedLogLevels ? _self.selectedLogLevel
 as Set<LogLevel>,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,groupingMode: null == groupingMode ? _self.groupingMode : groupingMode // ignore: cast_nullable_to_non_nullable
-as GroupingMode,
+as GroupingMode,collapsedGroups: null == collapsedGroups ? _self.collapsedGroups : collapsedGroups // ignore: cast_nullable_to_non_nullable
+as Set<String>,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode,  Set<String> collapsedGroups)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EnvironmentFilterState() when $default != null:
-return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode);case _:
+return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode,_that.collapsedGroups);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.availableSources,_that.availableSites,_that.availableCodes
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode,  Set<String> collapsedGroups)  $default,) {final _that = this;
 switch (_that) {
 case _EnvironmentFilterState():
-return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode);case _:
+return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode,_that.collapsedGroups);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.availableSources,_that.availableSites,_that.availableCodes
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> availableSources,  List<String> availableSites,  List<String> availableCodes,  String? selectedSource,  String? selectedSite,  String? selectedCode,  Set<LogLevel> selectedLogLevels,  DateTime? startDate,  DateTime? endDate,  GroupingMode groupingMode,  Set<String> collapsedGroups)?  $default,) {final _that = this;
 switch (_that) {
 case _EnvironmentFilterState() when $default != null:
-return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode);case _:
+return $default(_that.availableSources,_that.availableSites,_that.availableCodes,_that.selectedSource,_that.selectedSite,_that.selectedCode,_that.selectedLogLevels,_that.startDate,_that.endDate,_that.groupingMode,_that.collapsedGroups);case _:
   return null;
 
 }
@@ -215,7 +217,7 @@ return $default(_that.availableSources,_that.availableSites,_that.availableCodes
 
 
 class _EnvironmentFilterState implements EnvironmentFilterState {
-  const _EnvironmentFilterState({final  List<String> availableSources = const [], final  List<String> availableSites = const [], final  List<String> availableCodes = const [], this.selectedSource, this.selectedSite, this.selectedCode, final  Set<LogLevel> selectedLogLevels = const {}, this.startDate, this.endDate, this.groupingMode = GroupingMode.none}): _availableSources = availableSources,_availableSites = availableSites,_availableCodes = availableCodes,_selectedLogLevels = selectedLogLevels;
+  const _EnvironmentFilterState({final  List<String> availableSources = const [], final  List<String> availableSites = const [], final  List<String> availableCodes = const [], this.selectedSource, this.selectedSite, this.selectedCode, final  Set<LogLevel> selectedLogLevels = const {}, this.startDate, this.endDate, this.groupingMode = GroupingMode.none, final  Set<String> collapsedGroups = const {}}): _availableSources = availableSources,_availableSites = availableSites,_availableCodes = availableCodes,_selectedLogLevels = selectedLogLevels,_collapsedGroups = collapsedGroups;
   
 
  final  List<String> _availableSources;
@@ -252,6 +254,15 @@ class _EnvironmentFilterState implements EnvironmentFilterState {
 @override final  DateTime? startDate;
 @override final  DateTime? endDate;
 @override@JsonKey() final  GroupingMode groupingMode;
+/// 접힌 그룹 목록 (사이트명 또는 소스명)
+ final  Set<String> _collapsedGroups;
+/// 접힌 그룹 목록 (사이트명 또는 소스명)
+@override@JsonKey() Set<String> get collapsedGroups {
+  if (_collapsedGroups is EqualUnmodifiableSetView) return _collapsedGroups;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableSetView(_collapsedGroups);
+}
+
 
 /// Create a copy of EnvironmentFilterState
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +274,16 @@ _$EnvironmentFilterStateCopyWith<_EnvironmentFilterState> get copyWith => __$Env
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EnvironmentFilterState&&const DeepCollectionEquality().equals(other._availableSources, _availableSources)&&const DeepCollectionEquality().equals(other._availableSites, _availableSites)&&const DeepCollectionEquality().equals(other._availableCodes, _availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedSite, selectedSite) || other.selectedSite == selectedSite)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other._selectedLogLevels, _selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.groupingMode, groupingMode) || other.groupingMode == groupingMode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EnvironmentFilterState&&const DeepCollectionEquality().equals(other._availableSources, _availableSources)&&const DeepCollectionEquality().equals(other._availableSites, _availableSites)&&const DeepCollectionEquality().equals(other._availableCodes, _availableCodes)&&(identical(other.selectedSource, selectedSource) || other.selectedSource == selectedSource)&&(identical(other.selectedSite, selectedSite) || other.selectedSite == selectedSite)&&(identical(other.selectedCode, selectedCode) || other.selectedCode == selectedCode)&&const DeepCollectionEquality().equals(other._selectedLogLevels, _selectedLogLevels)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.groupingMode, groupingMode) || other.groupingMode == groupingMode)&&const DeepCollectionEquality().equals(other._collapsedGroups, _collapsedGroups));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_availableSources),const DeepCollectionEquality().hash(_availableSites),const DeepCollectionEquality().hash(_availableCodes),selectedSource,selectedSite,selectedCode,const DeepCollectionEquality().hash(_selectedLogLevels),startDate,endDate,groupingMode);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_availableSources),const DeepCollectionEquality().hash(_availableSites),const DeepCollectionEquality().hash(_availableCodes),selectedSource,selectedSite,selectedCode,const DeepCollectionEquality().hash(_selectedLogLevels),startDate,endDate,groupingMode,const DeepCollectionEquality().hash(_collapsedGroups));
 
 @override
 String toString() {
-  return 'EnvironmentFilterState(availableSources: $availableSources, availableSites: $availableSites, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedSite: $selectedSite, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate, groupingMode: $groupingMode)';
+  return 'EnvironmentFilterState(availableSources: $availableSources, availableSites: $availableSites, availableCodes: $availableCodes, selectedSource: $selectedSource, selectedSite: $selectedSite, selectedCode: $selectedCode, selectedLogLevels: $selectedLogLevels, startDate: $startDate, endDate: $endDate, groupingMode: $groupingMode, collapsedGroups: $collapsedGroups)';
 }
 
 
@@ -283,7 +294,7 @@ abstract mixin class _$EnvironmentFilterStateCopyWith<$Res> implements $Environm
   factory _$EnvironmentFilterStateCopyWith(_EnvironmentFilterState value, $Res Function(_EnvironmentFilterState) _then) = __$EnvironmentFilterStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<String> availableSources, List<String> availableSites, List<String> availableCodes, String? selectedSource, String? selectedSite, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate, GroupingMode groupingMode
+ List<String> availableSources, List<String> availableSites, List<String> availableCodes, String? selectedSource, String? selectedSite, String? selectedCode, Set<LogLevel> selectedLogLevels, DateTime? startDate, DateTime? endDate, GroupingMode groupingMode, Set<String> collapsedGroups
 });
 
 
@@ -300,7 +311,7 @@ class __$EnvironmentFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of EnvironmentFilterState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? availableSources = null,Object? availableSites = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedSite = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,Object? groupingMode = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? availableSources = null,Object? availableSites = null,Object? availableCodes = null,Object? selectedSource = freezed,Object? selectedSite = freezed,Object? selectedCode = freezed,Object? selectedLogLevels = null,Object? startDate = freezed,Object? endDate = freezed,Object? groupingMode = null,Object? collapsedGroups = null,}) {
   return _then(_EnvironmentFilterState(
 availableSources: null == availableSources ? _self._availableSources : availableSources // ignore: cast_nullable_to_non_nullable
 as List<String>,availableSites: null == availableSites ? _self._availableSites : availableSites // ignore: cast_nullable_to_non_nullable
@@ -312,7 +323,8 @@ as String?,selectedLogLevels: null == selectedLogLevels ? _self._selectedLogLeve
 as Set<LogLevel>,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,groupingMode: null == groupingMode ? _self.groupingMode : groupingMode // ignore: cast_nullable_to_non_nullable
-as GroupingMode,
+as GroupingMode,collapsedGroups: null == collapsedGroups ? _self._collapsedGroups : collapsedGroups // ignore: cast_nullable_to_non_nullable
+as Set<String>,
   ));
 }
 
