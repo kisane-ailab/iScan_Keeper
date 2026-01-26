@@ -2927,6 +2927,11 @@ class _AlertGroupedView extends StatefulWidget {
 class _AlertGroupedViewState extends State<_AlertGroupedView> {
   final Set<String> _collapsedGroups = {};
 
+  // 그룹별 표시 개수 (lazy loading)
+  final Map<String, int> _visibleCountPerGroup = {};
+  static const int _initialVisibleCount = 10;
+  static const int _loadMoreCount = 20;
+
   // 캐시된 그룹 데이터
   Map<String, List<SystemLogEntity>> _cachedGroups = {};
   List<String> _cachedSortedKeys = [];
@@ -2939,7 +2944,16 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
         _collapsedGroups.remove(key);
       } else {
         _collapsedGroups.add(key);
+        // 펼칠 때 초기 개수로 설정
+        _visibleCountPerGroup[key] = _initialVisibleCount;
       }
+    });
+  }
+
+  void _loadMoreInGroup(String key, int totalCount) {
+    setState(() {
+      final current = _visibleCountPerGroup[key] ?? _initialVisibleCount;
+      _visibleCountPerGroup[key] = (current + _loadMoreCount).clamp(0, totalCount);
     });
   }
 
@@ -3085,35 +3099,62 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
                     // 관리자 전용 삭제 버튼 (접힌 상태에서만 표시)
                     if (widget.isAdmin && isCollapsed && widget.onDeleteGroup != null) ...[
                       const SizedBox(width: 8),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minSize: 24,
-                        onPressed: () => _showDeleteGroupDialog(context, groupLogs),
-                        child: Icon(
-                          CupertinoIcons.ellipsis,
-                          size: 16,
-                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      Builder(
+                        builder: (btnContext) => CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minSize: 24,
+                          onPressed: () => _showGroupMenu(btnContext, groupLogs),
+                          child: Icon(
+                            CupertinoIcons.ellipsis,
+                            size: 16,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                          ),
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              // 그룹 카드들 (접히지 않은 경우에만 표시)
-              if (!isCollapsed)
-                ...groupLogs.map((entity) => _LogCard(
-                  key: ValueKey('log_${entity.id}'),
-                  entity: entity,
-                  onRespond: () => widget.onRespond(entity),
-                  onAbandon: () => widget.onAbandon(entity),
-                  onComplete: () => widget.onComplete(entity),
-                  onAssign: widget.onAssign != null ? () => widget.onAssign!(entity) : null,
-                  onDelete: (widget.isAdmin && widget.onDeleteLog != null)
-                      ? () => widget.onDeleteLog!(entity)
-                      : null,
-                  isAdmin: widget.isAdmin,
-                )),
-                const SizedBox(height: 20),
+              // 그룹 카드들 (접히지 않은 경우에만 표시, lazy loading)
+              if (!isCollapsed) ...[
+                ...() {
+                  final visibleCount = _visibleCountPerGroup[key] ?? _initialVisibleCount;
+                  final logsToShow = groupLogs.take(visibleCount).toList();
+                  return logsToShow.map((entity) => _LogCard(
+                    key: ValueKey('log_${entity.id}'),
+                    entity: entity,
+                    onRespond: () => widget.onRespond(entity),
+                    onAbandon: () => widget.onAbandon(entity),
+                    onComplete: () => widget.onComplete(entity),
+                    onAssign: widget.onAssign != null ? () => widget.onAssign!(entity) : null,
+                    onDelete: (widget.isAdmin && widget.onDeleteLog != null)
+                        ? () => widget.onDeleteLog!(entity)
+                        : null,
+                    isAdmin: widget.isAdmin,
+                  ));
+                }(),
+                // 더 보기 버튼 (더 있을 경우에만)
+                if (groupLogs.length > (_visibleCountPerGroup[key] ?? _initialVisibleCount))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        color: CupertinoColors.systemGrey5,
+                        borderRadius: BorderRadius.circular(8),
+                        onPressed: () => _loadMoreInGroup(key, groupLogs.length),
+                        child: Text(
+                          '더 보기 (${groupLogs.length - (_visibleCountPerGroup[key] ?? _initialVisibleCount)}개 남음)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: CupertinoColors.label.resolveFrom(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 20),
               ],
             ),
           ),
@@ -3123,27 +3164,50 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
     );
   }
 
-  Future<void> _showDeleteGroupDialog(
-      BuildContext context, List<SystemLogEntity> groupLogs) async {
-    final action = await showCupertinoModalPopup<String>(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text('${groupLogs.length}건의 이벤트'),
-        actions: [
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(context, 'delete'),
-            child: const Text('전체 삭제'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('취소'),
-        ),
-      ),
-    );
+  void _showGroupMenu(BuildContext btnContext, List<SystemLogEntity> groupLogs) {
+    final RenderBox button = btnContext.findRenderObject() as RenderBox;
+    final RenderBox overlay = Navigator.of(btnContext).overlay!.context.findRenderObject() as RenderBox;
+    final Offset position = button.localToGlobal(Offset.zero, ancestor: overlay);
 
-    if (action == 'delete' && context.mounted) {
+    showMenu<String>(
+      context: btnContext,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy + button.size.height,
+        position.dx + button.size.width,
+        position.dy,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.trash,
+                size: 16,
+                color: CupertinoColors.destructiveRed,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '전체 삭제 (${groupLogs.length}건)',
+                style: const TextStyle(
+                  color: CupertinoColors.destructiveRed,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'delete' && btnContext.mounted) {
+        _confirmDeleteGroup(btnContext, groupLogs);
+      }
+    });
+  }
+
+  Future<void> _confirmDeleteGroup(
+      BuildContext context, List<SystemLogEntity> groupLogs) async {
       final confirmed = await showCupertinoDialog<bool>(
         context: context,
         builder: (context) => CupertinoAlertDialog(
@@ -3163,9 +3227,8 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
         ),
       );
 
-      if (confirmed == true) {
-        widget.onDeleteGroup?.call(groupLogs);
-      }
+    if (confirmed == true) {
+      widget.onDeleteGroup?.call(groupLogs);
     }
   }
 }
