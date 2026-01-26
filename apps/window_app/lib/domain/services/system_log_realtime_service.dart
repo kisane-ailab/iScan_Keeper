@@ -22,8 +22,22 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   RealtimeChannel? _channel;
   final _alertController = StreamController<SystemLogEntity>.broadcast();
 
+  // 페이지네이션 상태 (이벤트만)
+  static const int _pageSize = 50;
+  int _prodEventOffset = 0;
+  int _devEventOffset = 0;
+  bool _hasMoreProdEvent = true;
+  bool _hasMoreDevEvent = true;
+  bool _isLoadingMore = false;
+
   Logger get _logger => ref.read(appLoggerProvider);
   Stream<SystemLogEntity> get alertStream => _alertController.stream;
+
+  /// 더 불러올 이벤트 데이터가 있는지
+  bool get hasMoreData => _hasMoreProdEvent || _hasMoreDevEvent;
+
+  /// 추가 로딩 중인지
+  bool get isLoadingMore => _isLoadingMore;
 
   /// 현재 알림 설정 가져오기
   NotificationSettings get _settings => ref.read(notificationSettingsServiceProvider);
@@ -53,15 +67,21 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     return action == NotificationAction.alwaysOnTop;
   }
 
-  /// 기존 로그 조회 (앱 시작 시) - 환경별/카테고리별 각각 조회
+  /// 기존 로그 조회 (앱 시작 시) - 이벤트는 페이지네이션, 헬스체크는 전체 조회
   Future<void> _fetchInitialLogs() async {
     try {
+      // 페이지네이션 상태 초기화 (이벤트만)
+      _prodEventOffset = 0;
+      _devEventOffset = 0;
+      _hasMoreProdEvent = true;
+      _hasMoreDevEvent = true;
+
       final client = ref.read(supabaseClientProvider);
 
       // 최근 2주 기준 날짜
       final twoWeeksAgo = DateTime.now().subtract(const Duration(days: 14)).toUtc().toIso8601String();
 
-      // 이벤트 로그 조회 - Production (최근 2주)
+      // 이벤트 로그 조회 - Production (페이지네이션)
       final prodEventResponse = await client
           .from('system_logs')
           .select()
@@ -69,9 +89,10 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           .eq('environment', 'production')
           .or('is_muted.is.null,is_muted.eq.false')
           .gte('created_at', twoWeeksAgo)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .range(0, _pageSize - 1);
 
-      // 이벤트 로그 조회 - Development (최근 2주)
+      // 이벤트 로그 조회 - Development (페이지네이션)
       final devEventResponse = await client
           .from('system_logs')
           .select()
@@ -79,9 +100,10 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           .eq('environment', 'development')
           .or('is_muted.is.null,is_muted.eq.false')
           .gte('created_at', twoWeeksAgo)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .range(0, _pageSize - 1);
 
-      // 헬스체크 로그 조회 - Production (최근 2주)
+      // 헬스체크 로그 조회 - Production (전체)
       final prodHealthCheckResponse = await client
           .from('system_logs')
           .select()
@@ -91,7 +113,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           .gte('created_at', twoWeeksAgo)
           .order('created_at', ascending: false);
 
-      // 헬스체크 로그 조회 - Development (최근 2주)
+      // 헬스체크 로그 조회 - Development (전체)
       final devHealthCheckResponse = await client
           .from('system_logs')
           .select()
@@ -101,11 +123,18 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           .gte('created_at', twoWeeksAgo)
           .order('created_at', ascending: false);
 
+      // 페이지네이션 상태 업데이트 (이벤트만)
+      _hasMoreProdEvent = prodEventResponse.length >= _pageSize;
+      _hasMoreDevEvent = devEventResponse.length >= _pageSize;
+      _prodEventOffset = prodEventResponse.length;
+      _devEventOffset = devEventResponse.length;
+
       // 전체 응답 합치기
       final eventResponse = [...prodEventResponse, ...devEventResponse];
       final healthCheckResponse = [...prodHealthCheckResponse, ...devHealthCheckResponse];
 
-      _logger.i('기존 로그 조회 완료 - 이벤트: ${eventResponse.length}건 (prod: ${prodEventResponse.length}, dev: ${devEventResponse.length}), 헬스체크: ${healthCheckResponse.length}건');
+      _logger.i('초기 로그 조회 완료 - 이벤트: ${eventResponse.length}건 (prod: ${prodEventResponse.length}, dev: ${devEventResponse.length}), 헬스체크: ${healthCheckResponse.length}건');
+      _logger.d('hasMore: prodEvent=$_hasMoreProdEvent, devEvent=$_hasMoreDevEvent');
 
       bool hasAlwaysOnTopNeeded = false;
       final allLogs = <SystemLogEntity>[];
@@ -146,6 +175,86 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       }
     } catch (e) {
       _logger.e('로그 조회 실패', error: e);
+    }
+  }
+
+  /// 추가 이벤트 로그 로딩 (무한 스크롤)
+  Future<void> loadMore({String? environment}) async {
+    if (_isLoadingMore || !hasMoreData) return;
+
+    _isLoadingMore = true;
+
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final twoWeeksAgo = DateTime.now().subtract(const Duration(days: 14)).toUtc().toIso8601String();
+
+      final newLogs = <SystemLogEntity>[];
+
+      // Production 이벤트 추가 로딩
+      if (_hasMoreProdEvent && (environment == null || environment == 'production')) {
+        final response = await client
+            .from('system_logs')
+            .select()
+            .eq('category', 'event')
+            .eq('environment', 'production')
+            .or('is_muted.is.null,is_muted.eq.false')
+            .gte('created_at', twoWeeksAgo)
+            .order('created_at', ascending: false)
+            .range(_prodEventOffset, _prodEventOffset + _pageSize - 1);
+
+        _hasMoreProdEvent = response.length >= _pageSize;
+        _prodEventOffset += response.length;
+
+        for (final record in response) {
+          try {
+            final model = SystemLogModel.fromJson(record);
+            newLogs.add(_toEntity(model));
+          } catch (e) {
+            _logger.e('로그 파싱 오류', error: e);
+          }
+        }
+      }
+
+      // Development 이벤트 추가 로딩
+      if (_hasMoreDevEvent && (environment == null || environment == 'development')) {
+        final response = await client
+            .from('system_logs')
+            .select()
+            .eq('category', 'event')
+            .eq('environment', 'development')
+            .or('is_muted.is.null,is_muted.eq.false')
+            .gte('created_at', twoWeeksAgo)
+            .order('created_at', ascending: false)
+            .range(_devEventOffset, _devEventOffset + _pageSize - 1);
+
+        _hasMoreDevEvent = response.length >= _pageSize;
+        _devEventOffset += response.length;
+
+        for (final record in response) {
+          try {
+            final model = SystemLogModel.fromJson(record);
+            newLogs.add(_toEntity(model));
+          } catch (e) {
+            _logger.e('로그 파싱 오류', error: e);
+          }
+        }
+      }
+
+      if (newLogs.isNotEmpty) {
+        // 중복 제거 후 추가
+        final existingIds = state.map((e) => e.id).toSet();
+        final uniqueNewLogs = newLogs.where((log) => !existingIds.contains(log.id)).toList();
+
+        final allLogs = [...state, ...uniqueNewLogs];
+        allLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        state = allLogs;
+
+        _logger.i('추가 이벤트 로딩 완료: ${uniqueNewLogs.length}건 추가 (총 ${state.length}건)');
+      }
+    } catch (e) {
+      _logger.e('추가 이벤트 로딩 실패', error: e);
+    } finally {
+      _isLoadingMore = false;
     }
   }
 
@@ -365,6 +474,42 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       }
     } catch (e) {
       _logger.e('로그 mute 실패: $id', error: e);
+    }
+  }
+
+  /// 개별 로그 삭제 (관리자 전용)
+  Future<void> deleteLog(String id) async {
+    try {
+      final repository = ref.read(systemLogRepositoryProvider);
+      await repository.deleteSystemLog(id);
+
+      // 로컬 상태에서 해당 로그 제거
+      state = state.where((log) => log.id != id).toList();
+      _logger.i('로그 삭제 완료: $id');
+
+      // 항상위 모드 재평가
+      await checkAndReleaseAlwaysOnTop();
+    } catch (e) {
+      _logger.e('로그 삭제 실패: $id', error: e);
+      rethrow;
+    }
+  }
+
+  /// 로그 일괄 삭제 (관리자 전용)
+  Future<void> deleteLogs(List<String> ids) async {
+    try {
+      final repository = ref.read(systemLogRepositoryProvider);
+      await repository.deleteSystemLogs(ids);
+
+      // 로컬 상태에서 해당 로그들 제거
+      state = state.where((log) => !ids.contains(log.id)).toList();
+      _logger.i('로그 일괄 삭제 완료: ${ids.length}건');
+
+      // 항상위 모드 재평가
+      await checkAndReleaseAlwaysOnTop();
+    } catch (e) {
+      _logger.e('로그 일괄 삭제 실패: ${ids.length}건', error: e);
+      rethrow;
     }
   }
 

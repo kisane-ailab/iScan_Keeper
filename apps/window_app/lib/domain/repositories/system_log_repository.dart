@@ -31,4 +31,10 @@ abstract class SystemLogRepository {
 
   /// 숨긴(muted) 로그 목록 조회
   Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100});
+
+  /// 시스템 로그 삭제 (관리자 전용)
+  Future<void> deleteSystemLog(String id);
+
+  /// 시스템 로그 일괄 삭제 (관리자 전용)
+  Future<void> deleteSystemLogs(List<String> ids);
 }

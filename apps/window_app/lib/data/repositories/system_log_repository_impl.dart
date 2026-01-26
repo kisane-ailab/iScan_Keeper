@@ -66,6 +66,16 @@ class SystemLogRepositoryImpl implements SystemLogRepository {
   Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100}) async {
     return await _remoteDatasource.getMutedLogs(limit: limit);
   }
+
+  @override
+  Future<void> deleteSystemLog(String id) async {
+    return await _remoteDatasource.deleteSystemLog(id);
+  }
+
+  @override
+  Future<void> deleteSystemLogs(List<String> ids) async {
+    return await _remoteDatasource.deleteSystemLogs(ids);
+  }
 }
 
 /// SystemLogRepository Provider

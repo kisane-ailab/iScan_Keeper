@@ -38,6 +38,12 @@ abstract class SystemLogRemoteDatasource {
 
   /// 숨긴(muted) 로그 목록 조회
   Future<List<Map<String, dynamic>>> getMutedLogs({int limit = 100});
+
+  /// 시스템 로그 삭제 (관리자 전용)
+  Future<void> deleteSystemLog(String id);
+
+  /// 시스템 로그 일괄 삭제 (관리자 전용)
+  Future<void> deleteSystemLogs(List<String> ids);
 }
 
 /// SystemLog Remote DataSource 구현체
@@ -165,6 +171,24 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
 
     logger.i('숨긴 로그 ${result.length}건 조회 완료');
     return List<Map<String, dynamic>>.from(result);
+  }
+
+  @override
+  Future<void> deleteSystemLog(String id) async {
+    logger.d('시스템 로그 삭제: $id');
+
+    await _client.from('system_logs').delete().eq('id', id);
+
+    logger.i('시스템 로그 삭제 완료: $id');
+  }
+
+  @override
+  Future<void> deleteSystemLogs(List<String> ids) async {
+    logger.d('시스템 로그 일괄 삭제: ${ids.length}건');
+
+    await _client.from('system_logs').delete().inFilter('id', ids);
+
+    logger.i('시스템 로그 일괄 삭제 완료: ${ids.length}건');
   }
 }
 
