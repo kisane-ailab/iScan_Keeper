@@ -53,7 +53,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     return action == NotificationAction.alwaysOnTop;
   }
 
-  /// 기존 로그 조회 (앱 시작 시) - 이벤트와 헬스체크 각각 조회
+  /// 기존 로그 조회 (앱 시작 시) - 환경별/카테고리별 각각 조회
   Future<void> _fetchInitialLogs() async {
     try {
       final client = ref.read(supabaseClientProvider);
@@ -61,25 +61,51 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 최근 2주 기준 날짜
       final twoWeeksAgo = DateTime.now().subtract(const Duration(days: 14)).toUtc().toIso8601String();
 
-      // 이벤트 로그 조회 (최근 2주)
-      final eventResponse = await client
+      // 이벤트 로그 조회 - Production (최근 2주)
+      final prodEventResponse = await client
           .from('system_logs')
           .select()
           .eq('category', 'event')
+          .eq('environment', 'production')
           .or('is_muted.is.null,is_muted.eq.false')
           .gte('created_at', twoWeeksAgo)
           .order('created_at', ascending: false);
 
-      // 헬스체크 로그 조회 (최근 2주)
-      final healthCheckResponse = await client
+      // 이벤트 로그 조회 - Development (최근 2주)
+      final devEventResponse = await client
+          .from('system_logs')
+          .select()
+          .eq('category', 'event')
+          .eq('environment', 'development')
+          .or('is_muted.is.null,is_muted.eq.false')
+          .gte('created_at', twoWeeksAgo)
+          .order('created_at', ascending: false);
+
+      // 헬스체크 로그 조회 - Production (최근 2주)
+      final prodHealthCheckResponse = await client
           .from('system_logs')
           .select()
           .eq('category', 'health_check')
+          .eq('environment', 'production')
           .or('is_muted.is.null,is_muted.eq.false')
           .gte('created_at', twoWeeksAgo)
           .order('created_at', ascending: false);
 
-      _logger.i('기존 로그 조회 완료 - 이벤트: ${eventResponse.length}건, 헬스체크: ${healthCheckResponse.length}건');
+      // 헬스체크 로그 조회 - Development (최근 2주)
+      final devHealthCheckResponse = await client
+          .from('system_logs')
+          .select()
+          .eq('category', 'health_check')
+          .eq('environment', 'development')
+          .or('is_muted.is.null,is_muted.eq.false')
+          .gte('created_at', twoWeeksAgo)
+          .order('created_at', ascending: false);
+
+      // 전체 응답 합치기
+      final eventResponse = [...prodEventResponse, ...devEventResponse];
+      final healthCheckResponse = [...prodHealthCheckResponse, ...devHealthCheckResponse];
+
+      _logger.i('기존 로그 조회 완료 - 이벤트: ${eventResponse.length}건 (prod: ${prodEventResponse.length}, dev: ${devEventResponse.length}), 헬스체크: ${healthCheckResponse.length}건');
 
       bool hasAlwaysOnTopNeeded = false;
       final allLogs = <SystemLogEntity>[];
