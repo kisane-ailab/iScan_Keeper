@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,6 +31,11 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   bool _hasMoreDevEvent = true;
   bool _isLoadingMore = false;
 
+  // 로컬 캐시
+  static const String _cacheBoxName = 'system_logs_cache';
+  static const String _cacheKey = 'logs';
+  Box<dynamic>? _cacheBox;
+
   Logger get _logger => ref.read(appLoggerProvider);
   Stream<SystemLogEntity> get alertStream => _alertController.stream;
 
@@ -44,8 +50,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
   @override
   List<SystemLogEntity> build() {
-    _startListening();
-    _fetchInitialLogs();
+    _initAndLoad();
 
     ref.onDispose(() {
       _channel?.unsubscribe();
@@ -53,6 +58,65 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
     });
 
     return [];
+  }
+
+  /// 초기화 및 로드 (캐시 → 서버)
+  Future<void> _initAndLoad() async {
+    // 1. 캐시에서 먼저 로드 (즉시 표시)
+    await _loadFromCache();
+
+    // 2. 리얼타임 리스닝 시작
+    _startListening();
+
+    // 3. 서버에서 최신 데이터 fetch (백그라운드)
+    await _fetchInitialLogs();
+  }
+
+  /// 로컬 캐시에서 로드
+  Future<void> _loadFromCache() async {
+    try {
+      _cacheBox = await Hive.openBox(_cacheBoxName);
+      final cached = _cacheBox?.get(_cacheKey);
+
+      if (cached != null && cached is List) {
+        final logs = <SystemLogEntity>[];
+        for (final item in cached) {
+          try {
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              final model = SystemLogModel.fromJson(map);
+              logs.add(_toEntity(model));
+            }
+          } catch (e) {
+            // 파싱 실패한 항목 무시
+          }
+        }
+
+        if (logs.isNotEmpty) {
+          logs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          state = logs;
+          _logger.i('캐시에서 ${logs.length}건 로드 완료');
+        }
+      }
+    } catch (e) {
+      _logger.w('캐시 로드 실패', error: e);
+    }
+  }
+
+  /// 로컬 캐시에 저장
+  Future<void> _saveToCache() async {
+    try {
+      if (_cacheBox == null) {
+        _cacheBox = await Hive.openBox(_cacheBoxName);
+      }
+
+      // Entity를 JSON Map으로 변환하여 저장
+      final jsonList = state.map((entity) => entity.toJson()).toList();
+      await _cacheBox?.put(_cacheKey, jsonList);
+      _logger.d('캐시에 ${jsonList.length}건 저장 완료');
+    } catch (e) {
+      _logger.w('캐시 저장 실패', error: e);
+    }
   }
 
   /// Model → Entity 변환
@@ -167,6 +231,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       allLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       state = allLogs;
 
+      // 캐시에 저장
+      await _saveToCache();
+
       // 항상위 모드가 필요한 미대응 로그가 있으면 활성화
       if (hasAlwaysOnTopNeeded) {
         _logger.w('항상위 모드 필요한 미대응 로그 발견 - 항상 위 모드 활성화');
@@ -248,6 +315,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         final allLogs = [...state, ...uniqueNewLogs];
         allLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         state = allLogs;
+
+        // 캐시에 저장
+        await _saveToCache();
 
         _logger.i('추가 이벤트 로딩 완료: ${uniqueNewLogs.length}건 추가 (총 ${state.length}건)');
       }

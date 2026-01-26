@@ -88,6 +88,10 @@ dependencies:
   flutter_animate: ^4.5.2
   flutter_glow: ^0.3.0
 
+  # Local Cache
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -146,3 +150,13 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 # Inno Setup installer - see installer/iScanKeeper.iss
+
+msix_config:
+  display_name: iScan Keeper
+  publisher_display_name: Kisane
+  identity_name: com.kisane.iscankeeper
+  msix_version: 1.0.0.0
+  logo_path: assets/icons/app_icon.ico
+  capabilities: internetClient
+  output_path: build/installer
+  output_name: iScanKeeper_Setup
