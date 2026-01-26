@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_app/app.dart';
-import 'package:window_app/infrastructure/cache/system_log_cache_service.dart';
 import 'package:window_app/infrastructure/local-storage/shared_preferences_storage.dart';
 import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';

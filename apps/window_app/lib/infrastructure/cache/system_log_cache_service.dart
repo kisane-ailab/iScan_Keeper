@@ -1,6 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:window_app/infrastructure/logger/app_logger.dart';
 
 part 'system_log_cache_service.g.dart';
 
