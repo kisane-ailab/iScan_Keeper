@@ -232,4 +232,30 @@ class SystemLogEntity {
 
     return buffer.toString();
   }
+
+  /// Entity → JSON (캐시 저장용)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'source': source,
+      'description': description,
+      'category': category.value,
+      'code': code,
+      'log_level': logLevel.value,
+      'environment': environment.value,
+      'payload': payload,
+      'attachments': attachments,
+      'response_status': responseStatus.value,
+      'created_at': _createdAtUtc.toIso8601String(),
+      'updated_at': _updatedAtUtc?.toIso8601String(),
+      'current_responder_id': currentResponderId,
+      'current_responder_name': currentResponderName,
+      'response_started_at': _responseStartedAtUtc?.toIso8601String(),
+      'organization_id': organizationId,
+      'assigned_by_id': assignedById,
+      'assigned_by_name': assignedByName,
+      'is_muted': isMuted,
+      'site': site,
+    };
+  }
 }

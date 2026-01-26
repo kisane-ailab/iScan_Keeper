@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_app/app.dart';
+import 'package:window_app/infrastructure/cache/system_log_cache_service.dart';
 import 'package:window_app/infrastructure/local-storage/shared_preferences_storage.dart';
 import 'package:window_app/infrastructure/supabase/supabase_client.dart';
 import 'package:window_app/infrastructure/system_tray/tray_manager.dart';
@@ -30,6 +32,9 @@ Future<void> main() async {
   // 창 닫기 방지 (트레이로 숨김)
   await windowManager.setPreventClose(true);
   windowManager.addListener(WindowListenerHandler());
+
+  // Hive 로컬 캐시 초기화
+  await Hive.initFlutter();
 
   // Supabase 초기화
   await SupabaseInitializer.initialize();
