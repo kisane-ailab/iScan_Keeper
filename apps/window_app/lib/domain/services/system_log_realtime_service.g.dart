@@ -42,7 +42,7 @@ final class SystemLogRealtimeServiceProvider
 }
 
 String _$systemLogRealtimeServiceHash() =>
-    r'47cfed3b26b6f6c08a953075ffaa7ea7f2ef61db';
+    r'0efac4bb02f402755f1dc10f8138a5d8d16cf4ab';
 
 abstract class _$SystemLogRealtimeService
     extends $Notifier<List<SystemLogEntity>> {
