@@ -975,7 +975,7 @@ class _NeonFilterChip extends StatelessWidget {
 }
 
 /// 그룹핑된 뷰
-class _GroupedView extends StatelessWidget {
+class _GroupedView extends HookWidget {
   const _GroupedView({
     required this.logs,
     required this.allLogs,
@@ -994,6 +994,19 @@ class _GroupedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 접힌 그룹 목록 (useState 사용)
+    final collapsedGroups = useState<Set<String>>({});
+
+    void toggleCollapse(String key) {
+      final newSet = Set<String>.from(collapsedGroups.value);
+      if (newSet.contains(key)) {
+        newSet.remove(key);
+      } else {
+        newSet.add(key);
+      }
+      collapsedGroups.value = newSet;
+    }
+
     // 그룹핑 키 추출
     final Map<String, List<SystemLogEntity>> groups = {};
 
@@ -1020,79 +1033,108 @@ class _GroupedView extends StatelessWidget {
           final icon = groupingMode == GroupingMode.bySource
               ? CupertinoIcons.device_desktop
               : CupertinoIcons.location;
+          final isCollapsed = collapsedGroups.value.contains(key);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 그룹 헤더
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey5.resolveFrom(context),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icon,
-                    size: 14,
-                    color: CupertinoColors.label.resolveFrom(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    key,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: CupertinoColors.label.resolveFrom(context),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          return RepaintBoundary(
+            key: ValueKey('health_group_$key'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 그룹 헤더 (전체 클릭 가능)
+                GestureDetector(
+                  onTap: () => toggleCollapse(key),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
+                      color: CupertinoColors.systemGrey5.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      '${groupLogs.length}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.systemBlue,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 접기/펼치기 아이콘
+                        AnimatedRotation(
+                          turns: isCollapsed ? -0.25 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            CupertinoIcons.chevron_down,
+                            size: 14,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          icon,
+                          size: 16,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          key,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.label.resolveFrom(context),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${groupLogs.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.systemBlue,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // 접기/펼치기 힌트 텍스트
+                        Text(
+                          isCollapsed ? '펼치기' : '접기',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            // 그룹 카드들
-            Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: groupLogs.map((log) {
-                // 해당 source+site 조합의 전체 로그 (히스토리용) - 생성시간 내림차순
-                final sourceSiteLogs = allLogs.where((l) {
-                  if (l.source != log.source) return false;
-                  if (l.site == null && log.site == null) return true;
-                  return l.site == log.site;
-                }).toList()
-                  ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                return SizedBox(
-                  width: cardWidth,
-                  child: _HealthStatusCard(
-                    entity: log,
-                    historyLogs: sourceSiteLogs,
-                    isAdmin: isAdmin,
+                ),
+                // 그룹 카드들 (접히지 않은 경우만 표시)
+                if (!isCollapsed)
+                  Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: groupLogs.map((log) {
+                      // 해당 source+site 조합의 전체 로그 (히스토리용) - 생성시간 내림차순
+                      final sourceSiteLogs = allLogs.where((l) {
+                        if (l.source != log.source) return false;
+                        if (l.site == null && log.site == null) return true;
+                        return l.site == log.site;
+                      }).toList()
+                        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                      return SizedBox(
+                        width: cardWidth,
+                        child: _HealthStatusCard(
+                          entity: log,
+                          historyLogs: sourceSiteLogs,
+                          isAdmin: isAdmin,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
+                const SizedBox(height: 20),
+              ],
             ),
-            const SizedBox(height: 20),
-          ],
-        );
+          );
         }).toList(),
       ),
     );

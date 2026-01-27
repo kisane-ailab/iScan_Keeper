@@ -27,6 +27,7 @@ import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
+import 'package:window_app/domain/services/tick_service.dart';
 
 /// 정렬 필드
 enum SortField {
@@ -1057,71 +1058,72 @@ class _AlertTabContent extends HookConsumerWidget {
                     final filter = state.getFilterForEnvironment(environment);
                     final groupingMode = filter.groupingMode;
                     final service = ref.read(systemLogRealtimeServiceProvider.notifier);
-                    final hasMore = service.hasMoreData;
+                    final envString = environment == Environment.production ? 'production' : 'development';
+                    final hasMore = service.hasMoreDataFor(envString);
                     final isLoadingMore = service.isLoadingMore;
 
-                    // 무한 스크롤 핸들러
-                    bool handleScrollNotification(ScrollNotification notification) {
-                      if (notification is ScrollEndNotification) {
-                        final metrics = notification.metrics;
-                        // 스크롤이 80% 이상 내려가면 추가 로딩
-                        if (metrics.pixels >= metrics.maxScrollExtent * 0.8 && hasMore && !isLoadingMore) {
-                          service.loadMore(
-                            environment: environment == Environment.production ? 'production' : 'development',
-                          );
-                        }
-                      }
-                      return false;
-                    }
-
                     if (groupingMode == GroupingMode.none) {
-                      return NotificationListener<ScrollNotification>(
-                        onNotification: handleScrollNotification,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: sortedLogs.length + (hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            // 로딩 인디케이터
-                            if (index == sortedLogs.length) {
-                              return Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Center(
-                                  child: isLoadingMore
-                                      ? const CupertinoActivityIndicator()
-                                      : CupertinoButton(
-                                          padding: EdgeInsets.zero,
-                                          onPressed: () => service.loadMore(
-                                            environment: environment == Environment.production ? 'production' : 'development',
+                      return ListView.builder(
+                        key: PageStorageKey('alert_list_$envString'),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: sortedLogs.length + 1, // 항상 하단에 상태 표시
+                        itemBuilder: (context, index) {
+                          // 과거 이벤트 불러오기 버튼 또는 완료 메시지
+                          if (index == sortedLogs.length) {
+                            return Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Center(
+                                child: isLoadingMore
+                                    ? const CupertinoActivityIndicator()
+                                    : hasMore
+                                        ? CupertinoButton(
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                            color: CupertinoColors.systemGrey5,
+                                            onPressed: () => service.loadMore(
+                                              environment: environment == Environment.production ? 'production' : 'development',
+                                            ),
+                                            child: const Text(
+                                              '과거 이벤트 불러오기',
+                                              style: TextStyle(
+                                                color: CupertinoColors.systemBlue,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          )
+                                        : Text(
+                                            '모든 이벤트를 불러왔습니다',
+                                            style: TextStyle(
+                                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                                              fontSize: 13,
+                                            ),
                                           ),
-                                          child: const Text('더 보기'),
-                                        ),
-                                ),
-                              );
-                            }
-
-                            final entity = sortedLogs[index];
-                            return _LogCard(
-                              entity: entity,
-                              onRespond: () =>
-                                  _showResponseDialog(context, ref, entity),
-                              onAbandon: () => _abandonResponse(context, ref, entity),
-                              onComplete: () =>
-                                  _showCompleteDialog(context, ref, entity),
-                              onAssign: isAdmin
-                                  ? () => _showAssignDialog(context, ref, entity)
-                                  : null,
-                              onDelete: isAdmin
-                                  ? () => _deleteLog(context, ref, entity)
-                                  : null,
-                              isAdmin: isAdmin,
+                              ),
                             );
-                          },
-                        ),
+                          }
+
+                          final entity = sortedLogs[index];
+                          return _LogCard(
+                            entity: entity,
+                            onRespond: () =>
+                                _showResponseDialog(context, ref, entity),
+                            onAbandon: () => _abandonResponse(context, ref, entity),
+                            onComplete: () =>
+                                _showCompleteDialog(context, ref, entity),
+                            onAssign: isAdmin
+                                ? () => _showAssignDialog(context, ref, entity)
+                                : null,
+                            onDelete: isAdmin
+                                ? () => _deleteLog(context, ref, entity)
+                                : null,
+                            isAdmin: isAdmin,
+                          );
+                        },
                       );
                     }
 
                     // 그룹핑 모드
                     return _AlertGroupedView(
+                      storageKey: 'alert_grouped_$envString',
                       logs: sortedLogs,
                       groupingMode: groupingMode,
                       isAdmin: isAdmin,
@@ -1247,11 +1249,11 @@ class _AlertTabContent extends HookConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        final errorMsg = e.toString().toLowerCase();
-        if (errorMsg.contains('in_progress') || errorMsg.contains('responder') || errorMsg.contains('대응')) {
+        final errorMsg = e.toString();
+        if (errorMsg.contains('대응 중')) {
           _showCupertinoToast(context, '대응 중인 이벤트는 삭제할 수 없습니다', false);
         } else {
-          _showCupertinoToast(context, '삭제에 실패했습니다', false);
+          _showCupertinoToast(context, '삭제에 실패했습니다: $errorMsg', false);
         }
       }
     }
@@ -1269,11 +1271,18 @@ class _AlertTabContent extends HookConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        final errorMsg = e.toString().toLowerCase();
-        if (errorMsg.contains('in_progress') || errorMsg.contains('responder') || errorMsg.contains('대응')) {
-          _showCupertinoToast(context, '대응 중인 이벤트가 포함되어 삭제할 수 없습니다', false);
+        final errorMsg = e.toString();
+        if (errorMsg.contains('대응 중')) {
+          // 에러 메시지에서 개수 추출
+          final match = RegExp(r'(\d+)건').firstMatch(errorMsg);
+          final count = match?.group(1) ?? '';
+          if (count.isNotEmpty) {
+            _showCupertinoToast(context, '대응 중인 이벤트가 ${count}건 포함되어 삭제할 수 없습니다', false);
+          } else {
+            _showCupertinoToast(context, '대응 중인 이벤트가 포함되어 삭제할 수 없습니다', false);
+          }
         } else {
-          _showCupertinoToast(context, '삭제에 실패했습니다', false);
+          _showCupertinoToast(context, '삭제에 실패했습니다: $errorMsg', false);
         }
       }
     }
@@ -1966,14 +1975,9 @@ class _LogCard extends HookConsumerWidget {
     final authState = ref.watch(authServiceProvider);
     final isMyResponse = entity.currentResponderId == authState.user?.id;
 
-    // 1초마다 리빌드하여 경과시간 업데이트 (발생 후 경과시간 + 대응 경과시간)
-    final tick = useState(0);
-    useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        tick.value++;
-      });
-      return timer.cancel;
-    }, []);
+    // 전역 tick provider 사용 (1초마다 경과시간 업데이트)
+    // ignore: unused_local_variable
+    final tick = ref.watch(tickServiceProvider);
 
     // 확장 상태
     final isExpanded = useState(false);
@@ -2030,8 +2034,9 @@ class _LogCard extends HookConsumerWidget {
       }
     }
 
-    return ClipRect(
-      child: AnimatedAlign(
+    return RepaintBoundary(
+      child: ClipRect(
+        child: AnimatedAlign(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         alignment: Alignment.topCenter,
@@ -2093,9 +2098,10 @@ class _LogCard extends HookConsumerWidget {
                           Flexible(
                             child: Text(
                               '[${entity.source}]',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: CupertinoColors.label.resolveFrom(context),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -2116,7 +2122,7 @@ class _LogCard extends HookConsumerWidget {
                                 color: entity.isHealthCheck
                                     ? CupertinoColors.systemGreen
                                     : CupertinoColors.systemBlue,
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2127,8 +2133,9 @@ class _LogCard extends HookConsumerWidget {
                         Text(
                           entity.code!,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: CupertinoColors.label.resolveFrom(context),
                           ),
                         ),
                       if (entity.description != null &&
@@ -2136,8 +2143,8 @@ class _LogCard extends HookConsumerWidget {
                         Text(
                           entity.description!,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                            fontSize: 14,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -2151,27 +2158,31 @@ class _LogCard extends HookConsumerWidget {
                     Text(
                       entity.formattedCreatedAt,
                       style: TextStyle(
-                        fontSize: 11,
-                        color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey5.resolveFrom(context),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        entity.formattedCreatedElapsedTime,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'monospace',
-                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    // critical만 경과시간 표시
+                    if (entity.logLevel == LogLevel.critical) ...[
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemGrey5.resolveFrom(context),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          entity.formattedCreatedElapsedTime,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'monospace',
+                            color: CupertinoColors.label.resolveFrom(context),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 // 더보기 메뉴 (할당, mute 등)
@@ -2621,6 +2632,7 @@ class _LogCard extends HookConsumerWidget {
       ),
         ),
       ),
+      ),
     );
   }
 
@@ -2905,6 +2917,7 @@ class _AlertGroupedView extends StatefulWidget {
     this.hasMore = false,
     this.isLoadingMore = false,
     this.onLoadMore,
+    this.storageKey,
   });
 
   final List<SystemLogEntity> logs;
@@ -2919,6 +2932,7 @@ class _AlertGroupedView extends StatefulWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final VoidCallback? onLoadMore;
+  final String? storageKey;
 
   @override
   State<_AlertGroupedView> createState() => _AlertGroupedViewState();
@@ -2977,20 +2991,6 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
     }
   }
 
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollEndNotification) {
-      final metrics = notification.metrics;
-      // 스크롤이 80% 이상 내려가면 추가 로딩
-      if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
-          widget.hasMore &&
-          !widget.isLoadingMore &&
-          widget.onLoadMore != null) {
-        widget.onLoadMore!();
-      }
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     // 필요시에만 그룹 재계산
@@ -2999,27 +2999,41 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
     final groups = _cachedGroups;
     final sortedKeys = _cachedSortedKeys;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: _handleScrollNotification,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: sortedKeys.length + (widget.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          // 로딩 인디케이터
-          if (index == sortedKeys.length) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: widget.isLoadingMore
-                    ? const CupertinoActivityIndicator()
-                    : CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: widget.onLoadMore,
-                        child: const Text('더 보기'),
-                      ),
-              ),
-            );
-          }
+    return ListView.builder(
+      key: widget.storageKey != null ? PageStorageKey(widget.storageKey) : null,
+      padding: const EdgeInsets.all(16),
+      itemCount: sortedKeys.length + 1, // 항상 하단에 상태 표시
+      itemBuilder: (context, index) {
+        // 과거 이벤트 불러오기 버튼 또는 완료 메시지
+        if (index == sortedKeys.length) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: widget.isLoadingMore
+                  ? const CupertinoActivityIndicator()
+                  : widget.hasMore
+                      ? CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          color: CupertinoColors.systemGrey5,
+                          onPressed: widget.onLoadMore,
+                          child: const Text(
+                            '과거 이벤트 불러오기',
+                            style: TextStyle(
+                              color: CupertinoColors.systemBlue,
+                              fontSize: 14,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          '모든 이벤트를 불러왔습니다',
+                          style: TextStyle(
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                            fontSize: 13,
+                          ),
+                        ),
+            ),
+          );
+        }
 
           final key = sortedKeys[index];
           final groupLogs = groups[key]!;
@@ -3035,84 +3049,86 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // 그룹 헤더 (클릭 가능)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey5.resolveFrom(context),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 접기/펼치기 + 그룹 정보 (클릭 가능)
-                    GestureDetector(
-                      onTap: () => _toggleCollapse(key),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 접기/펼치기 아이콘
-                          AnimatedRotation(
-                            turns: isCollapsed ? -0.25 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Icon(
-                              CupertinoIcons.chevron_down,
-                              size: 12,
-                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            icon,
-                            size: 14,
-                            color: CupertinoColors.label.resolveFrom(context),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            key,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: CupertinoColors.label.resolveFrom(context),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${groupLogs.length}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.systemBlue,
-                              ),
-                            ),
-                          ),
-                        ],
+              // 그룹 헤더 (전체 클릭 가능)
+              GestureDetector(
+                onTap: () => _toggleCollapse(key),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey5.resolveFrom(context),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 접기/펼치기 아이콘
+                      AnimatedRotation(
+                        turns: isCollapsed ? -0.25 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          CupertinoIcons.chevron_down,
+                          size: 14,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
                       ),
-                    ),
-                    // 관리자 전용 삭제 버튼 (접힌 상태에서만 표시)
-                    if (widget.isAdmin && isCollapsed && widget.onDeleteGroup != null) ...[
-                      const SizedBox(width: 8),
-                      Builder(
-                        builder: (btnContext) => CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          minSize: 24,
-                          onPressed: () => _showGroupMenu(btnContext, groupLogs),
-                          child: Icon(
-                            CupertinoIcons.ellipsis,
-                            size: 16,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      const SizedBox(width: 12),
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        key,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${groupLogs.length}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.systemBlue,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // 접기/펼치기 힌트 텍스트
+                      Text(
+                        isCollapsed ? '펼치기' : '접기',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
+                      ),
+                      // 관리자 전용 삭제 버튼 (접힌 상태에서만 표시)
+                      if (widget.isAdmin && isCollapsed && widget.onDeleteGroup != null) ...[
+                        const SizedBox(width: 12),
+                        Builder(
+                          builder: (btnContext) => GestureDetector(
+                            onTap: () => _showGroupMenu(btnContext, groupLogs),
+                            child: Icon(
+                              CupertinoIcons.ellipsis,
+                              size: 18,
+                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               // 그룹 카드들 (접히지 않은 경우에만 표시, lazy loading)
@@ -3160,7 +3176,6 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
           ),
         );
         },
-      ),
     );
   }
 

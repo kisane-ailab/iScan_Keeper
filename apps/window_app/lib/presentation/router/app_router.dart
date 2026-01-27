@@ -10,6 +10,7 @@ import 'package:window_app/presentation/pages/main/04_settings/settings_screen.d
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_screen.dart';
 import 'package:window_app/presentation/pages/main/06_muted/muted_screen.dart';
 import 'package:window_app/presentation/pages/main/07_swagger/swagger_screen.dart';
+import 'package:window_app/presentation/pages/main/08_workflow/workflow_screen.dart';
 import 'package:window_app/presentation/pages/splash/splash_screen.dart';
 import 'package:window_app/presentation/pages/splash/signup/signup_screen.dart';
 import 'package:window_app/presentation/pages/splash/verification/email_verification_screen.dart';
@@ -25,6 +26,7 @@ final _shellNavigatorProfileKey = GlobalKey<NavigatorState>();
 final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>();
 final _shellNavigatorMutedKey = GlobalKey<NavigatorState>();
 final _shellNavigatorSwaggerKey = GlobalKey<NavigatorState>();
+final _shellNavigatorWorkflowKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter appRouter(Ref ref) {
@@ -117,6 +119,17 @@ GoRouter appRouter(Ref ref) {
                 path: DashboardScreen.path,
                 name: DashboardScreen.name,
                 builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          // 워크플로우 브랜치 (네 번째)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorWorkflowKey,
+            routes: [
+              GoRoute(
+                path: WorkflowScreen.path,
+                name: WorkflowScreen.name,
+                builder: (context, state) => const WorkflowScreen(),
               ),
             ],
           ),

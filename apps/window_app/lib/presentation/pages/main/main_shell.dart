@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/domain/services/event_response_service.dart';
 import 'package:window_app/domain/services/read_status_service.dart';
+import 'package:window_app/domain/services/dataset_realtime_service.dart';
 import 'package:window_app/presentation/layout/base_shell.dart';
 import 'package:window_app/presentation/pages/main/01_alert/alert_view_model.dart';
 import 'package:window_app/presentation/pages/main/05_health_check/health_check_view_model.dart';
@@ -167,6 +168,16 @@ class MainShell extends BaseShell {
         icon: CupertinoIcons.square_grid_2x2,
         selectedIcon: CupertinoIcons.square_grid_2x2_fill,
         label: '대시보드',
+      ),
+      // 워크플로우 (역할에 따른 뱃지 표시)
+      _CupertinoNavDestination(
+        icon: CupertinoIcons.doc_chart,
+        selectedIcon: CupertinoIcons.doc_chart_fill,
+        label: '워크플로우',
+        badgeCount: isAdmin
+            ? ref.watch(pendingApprovalCountProvider)  // Admin: 승인 대기
+            : ref.watch(pendingReviewCountProvider),  // Developer: 리뷰 대기
+        badgeColor: CupertinoColors.systemPurple,
       ),
       const _CupertinoNavDestination(
         icon: CupertinoIcons.person,

@@ -10,19 +10,19 @@ part of 'read_status_service.dart';
 // ignore_for_file: type=lint, type=warning
 /// 로그 읽음 상태 관리 서비스
 /// - 상세보기를 열면 읽음 처리
-/// - 로컬 저장소에 읽은 로그 ID 목록 저장
+/// - Hive에 읽은 로그 ID 목록 저장
 
 @ProviderFor(ReadStatusService)
 const readStatusServiceProvider = ReadStatusServiceProvider._();
 
 /// 로그 읽음 상태 관리 서비스
 /// - 상세보기를 열면 읽음 처리
-/// - 로컬 저장소에 읽은 로그 ID 목록 저장
+/// - Hive에 읽은 로그 ID 목록 저장
 final class ReadStatusServiceProvider
     extends $NotifierProvider<ReadStatusService, ReadStatusState> {
   /// 로그 읽음 상태 관리 서비스
   /// - 상세보기를 열면 읽음 처리
-  /// - 로컬 저장소에 읽은 로그 ID 목록 저장
+  /// - Hive에 읽은 로그 ID 목록 저장
   const ReadStatusServiceProvider._()
     : super(
         from: null,
@@ -50,11 +50,11 @@ final class ReadStatusServiceProvider
   }
 }
 
-String _$readStatusServiceHash() => r'592d186664e7d5f3010df6304981c3dbeaed30c1';
+String _$readStatusServiceHash() => r'51e9b9181151cc0ac66823dfba0503b37c15e86e';
 
 /// 로그 읽음 상태 관리 서비스
 /// - 상세보기를 열면 읽음 처리
-/// - 로컬 저장소에 읽은 로그 ID 목록 저장
+/// - Hive에 읽은 로그 ID 목록 저장
 
 abstract class _$ReadStatusService extends $Notifier<ReadStatusState> {
   ReadStatusState build();

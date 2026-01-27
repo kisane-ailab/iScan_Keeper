@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -140,6 +141,14 @@ class AppTrayManager with TrayListener {
       }
     } catch (e) {
       logger.e('앱 종료 시 상태 변경 실패', error: e);
+    }
+
+    // Hive 캐시 안전하게 닫기 (데이터 손실 방지)
+    try {
+      await Hive.close();
+      logger.i('앱 종료: Hive 캐시 저장 완료');
+    } catch (e) {
+      logger.e('앱 종료 시 Hive 닫기 실패', error: e);
     }
 
     await trayManager.destroy();

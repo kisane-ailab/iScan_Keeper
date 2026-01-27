@@ -32,15 +32,22 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   bool _isLoadingMore = false;
 
   // 로컬 캐시
-  static const String _cacheBoxName = 'system_logs_cache';
+  static const String _cacheBoxName = 'system_logs_realtime_cache';
   static const String _cacheKey = 'logs';
   Box<dynamic>? _cacheBox;
 
   Logger get _logger => ref.read(appLoggerProvider);
   Stream<SystemLogEntity> get alertStream => _alertController.stream;
 
-  /// 더 불러올 이벤트 데이터가 있는지
+  /// 더 불러올 이벤트 데이터가 있는지 (전체)
   bool get hasMoreData => _hasMoreProdEvent || _hasMoreDevEvent;
+
+  /// 특정 환경에 더 불러올 데이터가 있는지
+  bool hasMoreDataFor(String? environment) {
+    if (environment == 'production') return _hasMoreProdEvent;
+    if (environment == 'development') return _hasMoreDevEvent;
+    return _hasMoreProdEvent || _hasMoreDevEvent;
+  }
 
   /// 추가 로딩 중인지
   bool get isLoadingMore => _isLoadingMore;
@@ -74,22 +81,33 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
   /// 로컬 캐시에서 로드
   Future<void> _loadFromCache() async {
+    _logger.i('=== 캐시 로드 시작 ===');
     try {
       _cacheBox = await Hive.openBox(_cacheBoxName);
+      _logger.i('Hive box 열림: $_cacheBoxName');
       final cached = _cacheBox?.get(_cacheKey);
 
       if (cached != null && cached is List) {
+        _logger.i('캐시 파일에서 ${cached.length}건 발견');
         final logs = <SystemLogEntity>[];
+        int parseFailCount = 0;
+
         for (final item in cached) {
           try {
             if (item is Map) {
-              final map = Map<String, dynamic>.from(item);
+              // Hive에서 가져온 Map을 재귀적으로 변환
+              final map = _deepConvertMap(item);
               final model = SystemLogModel.fromJson(map);
               logs.add(_toEntity(model));
             }
           } catch (e) {
-            // 파싱 실패한 항목 무시
+            parseFailCount++;
+            _logger.w('캐시 항목 파싱 실패', error: e);
           }
+        }
+
+        if (parseFailCount > 0) {
+          _logger.w('캐시 파싱 실패: $parseFailCount건');
         }
 
         if (logs.isNotEmpty) {
@@ -97,10 +115,36 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           state = logs;
           _logger.i('캐시에서 ${logs.length}건 로드 완료');
         }
+      } else {
+        _logger.i('캐시 데이터 없음');
       }
     } catch (e) {
       _logger.w('캐시 로드 실패', error: e);
     }
+  }
+
+  /// Hive에서 가져온 Map을 재귀적으로 Map<String, dynamic>으로 변환
+  Map<String, dynamic> _deepConvertMap(Map map) {
+    return map.map((key, value) {
+      if (value is Map) {
+        return MapEntry(key.toString(), _deepConvertMap(value));
+      } else if (value is List) {
+        return MapEntry(key.toString(), _deepConvertList(value));
+      }
+      return MapEntry(key.toString(), value);
+    });
+  }
+
+  /// Hive에서 가져온 List를 재귀적으로 변환
+  List<dynamic> _deepConvertList(List list) {
+    return list.map((item) {
+      if (item is Map) {
+        return _deepConvertMap(item);
+      } else if (item is List) {
+        return _deepConvertList(item);
+      }
+      return item;
+    }).toList();
   }
 
   /// 로컬 캐시에 저장
@@ -113,7 +157,12 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // Entity를 JSON Map으로 변환하여 저장
       final jsonList = state.map((entity) => entity.toJson()).toList();
       await _cacheBox?.put(_cacheKey, jsonList);
-      _logger.d('캐시에 ${jsonList.length}건 저장 완료');
+      await _cacheBox?.flush(); // 즉시 디스크에 저장
+
+      // 저장 검증
+      final saved = _cacheBox?.get(_cacheKey);
+      final savedCount = (saved is List) ? saved.length : 0;
+      _logger.i('캐시 저장 완료: ${jsonList.length}건 저장, 검증: $savedCount건');
     } catch (e) {
       _logger.w('캐시 저장 실패', error: e);
     }
@@ -134,6 +183,12 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   /// 기존 로그 조회 (앱 시작 시) - 이벤트는 페이지네이션, 헬스체크는 전체 조회
   Future<void> _fetchInitialLogs() async {
     try {
+      // 캐시에서 로드된 현재 상태 확인
+      final cachedProdEvents = state.where((log) => log.isEvent && log.isProduction).length;
+      final cachedDevEvents = state.where((log) => log.isEvent && log.isDevelopment).length;
+      _logger.i('=== 서버 조회 시작 ===');
+      _logger.i('현재 캐시 상태: 총 ${state.length}건 (prod이벤트: $cachedProdEvents, dev이벤트: $cachedDevEvents)');
+
       // 페이지네이션 상태 초기화 (이벤트만)
       _prodEventOffset = 0;
       _devEventOffset = 0;
@@ -227,9 +282,31 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         }
       }
 
+      // 캐시 데이터와 머지 (서버 데이터 우선, 캐시에만 있는 오래된 데이터 유지)
+      final fetchedIds = allLogs.map((e) => e.id).toSet();
+      final cachedOldLogs = state.where((log) => !fetchedIds.contains(log.id)).toList();
+      final mergedLogs = [...allLogs, ...cachedOldLogs];
+
       // 시간순 정렬 (최신순)
-      allLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      state = allLogs;
+      mergedLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      state = mergedLogs;
+
+      // 머지된 데이터 기준으로 페이지네이션 오프셋 조정
+      final mergedProdEvents = mergedLogs.where((log) => log.isEvent && log.isProduction).length;
+      final mergedDevEvents = mergedLogs.where((log) => log.isEvent && log.isDevelopment).length;
+
+      if (mergedProdEvents > _prodEventOffset) {
+        _prodEventOffset = mergedProdEvents;
+        _hasMoreProdEvent = true; // 캐시 데이터가 있으면 서버에 더 있을 수 있음
+      }
+      if (mergedDevEvents > _devEventOffset) {
+        _devEventOffset = mergedDevEvents;
+        _hasMoreDevEvent = true;
+      }
+
+      _logger.i('로그 머지 완료: 서버 ${allLogs.length}건 + 캐시유지 ${cachedOldLogs.length}건 = 총 ${mergedLogs.length}건');
+      _logger.i('최종 상태: prod이벤트=$mergedProdEvents, dev이벤트=$mergedDevEvents');
+      _logger.d('오프셋 조정: prodEvent=$_prodEventOffset, devEvent=$_devEventOffset');
 
       // 캐시에 저장
       await _saveToCache();
@@ -307,6 +384,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         }
       }
 
+      // 로딩 완료 먼저 설정 (UI가 state 갱신 시 isLoadingMore=false 상태로 보이도록)
+      _isLoadingMore = false;
+
       if (newLogs.isNotEmpty) {
         // 중복 제거 후 추가
         final existingIds = state.map((e) => e.id).toSet();
@@ -320,11 +400,16 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         await _saveToCache();
 
         _logger.i('추가 이벤트 로딩 완료: ${uniqueNewLogs.length}건 추가 (총 ${state.length}건)');
+      } else {
+        // 새 로그가 없어도 hasMore 상태 변경을 UI에 알리기 위해 state 갱신
+        state = [...state];
+        _logger.i('추가 이벤트 없음 - 모든 이벤트 로딩 완료');
       }
     } catch (e) {
       _logger.e('추가 이벤트 로딩 실패', error: e);
-    } finally {
       _isLoadingMore = false;
+      // 에러 시에도 UI 갱신
+      state = [...state];
     }
   }
 
@@ -367,6 +452,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
       // 목록에 추가
       state = [entity, ...state];
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 알림이 필요한 레벨이고 미대응 상태면 알림 스트림에 추가
       if (entity.needsNotification) {
@@ -417,6 +505,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
       _logger.i('새 state 개수: ${newState.length}');
       state = newState;
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 대응 시작 감지 (unchecked → in_progress)
       if (localOldEntity.isUnchecked && newEntity.isBeingResponded) {
@@ -512,6 +603,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       _logger.i('DELETE 처리: $deletedId (이전: ${state.length}개 → 현재: ${newState.length}개)');
       state = newState;
 
+      // 캐시에 저장
+      await _saveToCache();
+
       // 삭제된 로그가 항상위 모드가 필요했다면 재평가
       if (wasAlwaysOnTopNeeded) {
         await checkAndReleaseAlwaysOnTop();
@@ -540,6 +634,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그 제거 (muted 처리되었으므로)
       if (muted) {
         state = state.where((log) => log.id != id).toList();
+        await _saveToCache();
         _logger.i('로그 mute 완료: $id');
       }
     } catch (e) {
@@ -556,6 +651,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그 제거
       state = state.where((log) => log.id != id).toList();
       _logger.i('로그 삭제 완료: $id');
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 항상위 모드 재평가
       await checkAndReleaseAlwaysOnTop();
@@ -574,6 +672,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그들 제거
       state = state.where((log) => !ids.contains(log.id)).toList();
       _logger.i('로그 일괄 삭제 완료: ${ids.length}건');
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 항상위 모드 재평가
       await checkAndReleaseAlwaysOnTop();

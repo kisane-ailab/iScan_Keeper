@@ -110,13 +110,13 @@ class SystemLogEntity {
 
   // ===== 포맷된 시간 문자열 =====
 
-  /// 생성 시간 포맷 (MM/dd HH:mm)
+  /// 생성 시간 포맷 (MM/dd HH:mm:ss)
   String get formattedCreatedAt => _formatDateTime(createdAt);
 
-  /// 업데이트 시간 포맷 (MM/dd HH:mm)
+  /// 업데이트 시간 포맷 (MM/dd HH:mm:ss)
   String get formattedUpdatedAt => _formatDateTime(updatedAt);
 
-  /// 대응 시작 시간 포맷 (MM/dd HH:mm 시작)
+  /// 대응 시작 시간 포맷 (MM/dd HH:mm:ss 시작)
   String? get formattedResponseStartedAt {
     final time = responseStartedAt;
     if (time == null) return null;
