@@ -32,7 +32,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   bool _isLoadingMore = false;
 
   // 로컬 캐시
-  static const String _cacheBoxName = 'system_logs_cache';
+  static const String _cacheBoxName = 'system_logs_realtime_cache';
   static const String _cacheKey = 'logs';
   Box<dynamic>? _cacheBox;
 
@@ -149,7 +149,11 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       final jsonList = state.map((entity) => entity.toJson()).toList();
       await _cacheBox?.put(_cacheKey, jsonList);
       await _cacheBox?.flush(); // 즉시 디스크에 저장
-      _logger.i('캐시에 ${jsonList.length}건 저장 완료');
+
+      // 저장 검증
+      final saved = _cacheBox?.get(_cacheKey);
+      final savedCount = (saved is List) ? saved.length : 0;
+      _logger.i('캐시 저장 완료: ${jsonList.length}건 저장, 검증: $savedCount건');
     } catch (e) {
       _logger.w('캐시 저장 실패', error: e);
     }
