@@ -74,8 +74,10 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
   /// 로컬 캐시에서 로드
   Future<void> _loadFromCache() async {
+    _logger.i('=== 캐시 로드 시작 ===');
     try {
       _cacheBox = await Hive.openBox(_cacheBoxName);
+      _logger.i('Hive box 열림: $_cacheBoxName');
       final cached = _cacheBox?.get(_cacheKey);
 
       if (cached != null && cached is List) {
@@ -174,6 +176,12 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   /// 기존 로그 조회 (앱 시작 시) - 이벤트는 페이지네이션, 헬스체크는 전체 조회
   Future<void> _fetchInitialLogs() async {
     try {
+      // 캐시에서 로드된 현재 상태 확인
+      final cachedProdEvents = state.where((log) => log.isEvent && log.isProduction).length;
+      final cachedDevEvents = state.where((log) => log.isEvent && log.isDevelopment).length;
+      _logger.i('=== 서버 조회 시작 ===');
+      _logger.i('현재 캐시 상태: 총 ${state.length}건 (prod이벤트: $cachedProdEvents, dev이벤트: $cachedDevEvents)');
+
       // 페이지네이션 상태 초기화 (이벤트만)
       _prodEventOffset = 0;
       _devEventOffset = 0;
@@ -289,7 +297,8 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         _hasMoreDevEvent = true;
       }
 
-      _logger.i('로그 머지 완료: 서버 ${allLogs.length}건 + 캐시 ${cachedOldLogs.length}건 = 총 ${mergedLogs.length}건');
+      _logger.i('로그 머지 완료: 서버 ${allLogs.length}건 + 캐시유지 ${cachedOldLogs.length}건 = 총 ${mergedLogs.length}건');
+      _logger.i('최종 상태: prod이벤트=$mergedProdEvents, dev이벤트=$mergedDevEvents');
       _logger.d('오프셋 조정: prodEvent=$_prodEventOffset, devEvent=$_devEventOffset');
 
       // 캐시에 저장
