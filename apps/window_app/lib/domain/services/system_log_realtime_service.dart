@@ -236,7 +236,21 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       mergedLogs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       state = mergedLogs;
 
+      // 머지된 데이터 기준으로 페이지네이션 오프셋 조정
+      final mergedProdEvents = mergedLogs.where((log) => log.isEvent && log.isProduction).length;
+      final mergedDevEvents = mergedLogs.where((log) => log.isEvent && log.isDevelopment).length;
+
+      if (mergedProdEvents > _prodEventOffset) {
+        _prodEventOffset = mergedProdEvents;
+        _hasMoreProdEvent = true; // 캐시 데이터가 있으면 서버에 더 있을 수 있음
+      }
+      if (mergedDevEvents > _devEventOffset) {
+        _devEventOffset = mergedDevEvents;
+        _hasMoreDevEvent = true;
+      }
+
       _logger.i('로그 머지 완료: 서버 ${allLogs.length}건 + 캐시 ${cachedOldLogs.length}건 = 총 ${mergedLogs.length}건');
+      _logger.d('오프셋 조정: prodEvent=$_prodEventOffset, devEvent=$_devEventOffset');
 
       // 캐시에 저장
       await _saveToCache();
@@ -375,6 +389,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 목록에 추가
       state = [entity, ...state];
 
+      // 캐시에 저장
+      await _saveToCache();
+
       // 알림이 필요한 레벨이고 미대응 상태면 알림 스트림에 추가
       if (entity.needsNotification) {
         _alertController.add(entity);
@@ -424,6 +441,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
 
       _logger.i('새 state 개수: ${newState.length}');
       state = newState;
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 대응 시작 감지 (unchecked → in_progress)
       if (localOldEntity.isUnchecked && newEntity.isBeingResponded) {
@@ -519,6 +539,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       _logger.i('DELETE 처리: $deletedId (이전: ${state.length}개 → 현재: ${newState.length}개)');
       state = newState;
 
+      // 캐시에 저장
+      await _saveToCache();
+
       // 삭제된 로그가 항상위 모드가 필요했다면 재평가
       if (wasAlwaysOnTopNeeded) {
         await checkAndReleaseAlwaysOnTop();
@@ -547,6 +570,7 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그 제거 (muted 처리되었으므로)
       if (muted) {
         state = state.where((log) => log.id != id).toList();
+        await _saveToCache();
         _logger.i('로그 mute 완료: $id');
       }
     } catch (e) {
@@ -563,6 +587,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그 제거
       state = state.where((log) => log.id != id).toList();
       _logger.i('로그 삭제 완료: $id');
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 항상위 모드 재평가
       await checkAndReleaseAlwaysOnTop();
@@ -581,6 +608,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // 로컬 상태에서 해당 로그들 제거
       state = state.where((log) => !ids.contains(log.id)).toList();
       _logger.i('로그 일괄 삭제 완료: ${ids.length}건');
+
+      // 캐시에 저장
+      await _saveToCache();
 
       // 항상위 모드 재평가
       await checkAndReleaseAlwaysOnTop();
