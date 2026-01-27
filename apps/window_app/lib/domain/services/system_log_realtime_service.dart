@@ -79,17 +79,26 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       final cached = _cacheBox?.get(_cacheKey);
 
       if (cached != null && cached is List) {
+        _logger.i('캐시 파일에서 ${cached.length}건 발견');
         final logs = <SystemLogEntity>[];
+        int parseFailCount = 0;
+
         for (final item in cached) {
           try {
             if (item is Map) {
-              final map = Map<String, dynamic>.from(item);
+              // Hive에서 가져온 Map을 재귀적으로 변환
+              final map = _deepConvertMap(item);
               final model = SystemLogModel.fromJson(map);
               logs.add(_toEntity(model));
             }
           } catch (e) {
-            // 파싱 실패한 항목 무시
+            parseFailCount++;
+            _logger.w('캐시 항목 파싱 실패', error: e);
           }
+        }
+
+        if (parseFailCount > 0) {
+          _logger.w('캐시 파싱 실패: $parseFailCount건');
         }
 
         if (logs.isNotEmpty) {
@@ -97,10 +106,36 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
           state = logs;
           _logger.i('캐시에서 ${logs.length}건 로드 완료');
         }
+      } else {
+        _logger.i('캐시 데이터 없음');
       }
     } catch (e) {
       _logger.w('캐시 로드 실패', error: e);
     }
+  }
+
+  /// Hive에서 가져온 Map을 재귀적으로 Map<String, dynamic>으로 변환
+  Map<String, dynamic> _deepConvertMap(Map map) {
+    return map.map((key, value) {
+      if (value is Map) {
+        return MapEntry(key.toString(), _deepConvertMap(value));
+      } else if (value is List) {
+        return MapEntry(key.toString(), _deepConvertList(value));
+      }
+      return MapEntry(key.toString(), value);
+    });
+  }
+
+  /// Hive에서 가져온 List를 재귀적으로 변환
+  List<dynamic> _deepConvertList(List list) {
+    return list.map((item) {
+      if (item is Map) {
+        return _deepConvertMap(item);
+      } else if (item is List) {
+        return _deepConvertList(item);
+      }
+      return item;
+    }).toList();
   }
 
   /// 로컬 캐시에 저장
@@ -113,7 +148,8 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       // Entity를 JSON Map으로 변환하여 저장
       final jsonList = state.map((entity) => entity.toJson()).toList();
       await _cacheBox?.put(_cacheKey, jsonList);
-      _logger.d('캐시에 ${jsonList.length}건 저장 완료');
+      await _cacheBox?.flush(); // 즉시 디스크에 저장
+      _logger.i('캐시에 ${jsonList.length}건 저장 완료');
     } catch (e) {
       _logger.w('캐시 저장 실패', error: e);
     }
