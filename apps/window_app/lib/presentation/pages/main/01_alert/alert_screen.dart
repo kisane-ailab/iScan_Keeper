@@ -3035,84 +3035,86 @@ class _AlertGroupedViewState extends State<_AlertGroupedView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // 그룹 헤더 (클릭 가능)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey5.resolveFrom(context),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 접기/펼치기 + 그룹 정보 (클릭 가능)
-                    GestureDetector(
-                      onTap: () => _toggleCollapse(key),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 접기/펼치기 아이콘
-                          AnimatedRotation(
-                            turns: isCollapsed ? -0.25 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Icon(
-                              CupertinoIcons.chevron_down,
-                              size: 12,
-                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            icon,
-                            size: 14,
-                            color: CupertinoColors.label.resolveFrom(context),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            key,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: CupertinoColors.label.resolveFrom(context),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${groupLogs.length}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.systemBlue,
-                              ),
-                            ),
-                          ),
-                        ],
+              // 그룹 헤더 (전체 클릭 가능)
+              GestureDetector(
+                onTap: () => _toggleCollapse(key),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey5.resolveFrom(context),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 접기/펼치기 아이콘
+                      AnimatedRotation(
+                        turns: isCollapsed ? -0.25 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          CupertinoIcons.chevron_down,
+                          size: 14,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
                       ),
-                    ),
-                    // 관리자 전용 삭제 버튼 (접힌 상태에서만 표시)
-                    if (widget.isAdmin && isCollapsed && widget.onDeleteGroup != null) ...[
-                      const SizedBox(width: 8),
-                      Builder(
-                        builder: (btnContext) => CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          minSize: 24,
-                          onPressed: () => _showGroupMenu(btnContext, groupLogs),
-                          child: Icon(
-                            CupertinoIcons.ellipsis,
-                            size: 16,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      const SizedBox(width: 12),
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        key,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${groupLogs.length}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.systemBlue,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // 접기/펼치기 힌트 텍스트
+                      Text(
+                        isCollapsed ? '펼치기' : '접기',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        ),
+                      ),
+                      // 관리자 전용 삭제 버튼 (접힌 상태에서만 표시)
+                      if (widget.isAdmin && isCollapsed && widget.onDeleteGroup != null) ...[
+                        const SizedBox(width: 12),
+                        Builder(
+                          builder: (btnContext) => GestureDetector(
+                            onTap: () => _showGroupMenu(btnContext, groupLogs),
+                            child: Icon(
+                              CupertinoIcons.ellipsis,
+                              size: 18,
+                              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               // 그룹 카드들 (접히지 않은 경우에만 표시, lazy loading)
