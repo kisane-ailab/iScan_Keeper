@@ -43,6 +43,38 @@ watch 모드:
 fvm flutter pub run build_runner watch --delete-conflicting-outputs
 ```
 
+## 로컬 캐시
+
+앱은 오프라인 지원 및 빠른 로딩을 위해 Hive 로컬 캐시를 사용합니다.
+
+### 캐시 파일 위치
+```
+%USERPROFILE%\Documents\
+```
+
+### 캐시 파일 설명
+
+| 파일명 | 설명 |
+|--------|------|
+| `system_logs_realtime_cache.hive` | 이벤트/헬스체크 로그 캐시. 앱 시작 시 서버 데이터 로드 전까지 이 캐시를 먼저 표시 |
+| `datasets_realtime_cache.hive` | 데이터셋 워크플로우 캐시. 리뷰/승인 대기 중인 데이터셋 목록 |
+| `read_status_cache.hive` | 읽음 상태 캐시. 사용자가 확인한 이벤트/헬스체크 ID 목록 (뱃지 카운트용) |
+
+### 캐시 삭제
+
+릴리즈 테스트 또는 문제 발생 시 캐시를 삭제하려면:
+
+```bash
+# 배치파일 실행
+clear_cache.bat
+```
+
+또는 수동으로:
+```bash
+del "%USERPROFILE%\Documents\*_cache.hive" 2>nul
+del "%USERPROFILE%\Documents\*_cache.lock" 2>nul
+```
+
 ## 응급조치 (문제 발생 시)
 
 ```bash

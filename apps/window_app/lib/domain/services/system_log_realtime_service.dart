@@ -39,8 +39,15 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
   Logger get _logger => ref.read(appLoggerProvider);
   Stream<SystemLogEntity> get alertStream => _alertController.stream;
 
-  /// 더 불러올 이벤트 데이터가 있는지
+  /// 더 불러올 이벤트 데이터가 있는지 (전체)
   bool get hasMoreData => _hasMoreProdEvent || _hasMoreDevEvent;
+
+  /// 특정 환경에 더 불러올 데이터가 있는지
+  bool hasMoreDataFor(String? environment) {
+    if (environment == 'production') return _hasMoreProdEvent;
+    if (environment == 'development') return _hasMoreDevEvent;
+    return _hasMoreProdEvent || _hasMoreDevEvent;
+  }
 
   /// 추가 로딩 중인지
   bool get isLoadingMore => _isLoadingMore;
@@ -377,6 +384,9 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         }
       }
 
+      // 로딩 완료 먼저 설정 (UI가 state 갱신 시 isLoadingMore=false 상태로 보이도록)
+      _isLoadingMore = false;
+
       if (newLogs.isNotEmpty) {
         // 중복 제거 후 추가
         final existingIds = state.map((e) => e.id).toSet();
@@ -390,11 +400,16 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
         await _saveToCache();
 
         _logger.i('추가 이벤트 로딩 완료: ${uniqueNewLogs.length}건 추가 (총 ${state.length}건)');
+      } else {
+        // 새 로그가 없어도 hasMore 상태 변경을 UI에 알리기 위해 state 갱신
+        state = [...state];
+        _logger.i('추가 이벤트 없음 - 모든 이벤트 로딩 완료');
       }
     } catch (e) {
       _logger.e('추가 이벤트 로딩 실패', error: e);
-    } finally {
       _isLoadingMore = false;
+      // 에러 시에도 UI 갱신
+      state = [...state];
     }
   }
 

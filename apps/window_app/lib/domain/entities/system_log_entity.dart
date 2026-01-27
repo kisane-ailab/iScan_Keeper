@@ -110,13 +110,13 @@ class SystemLogEntity {
 
   // ===== 포맷된 시간 문자열 =====
 
-  /// 생성 시간 포맷 (MM/dd HH:mm)
+  /// 생성 시간 포맷 (MM/dd HH:mm:ss)
   String get formattedCreatedAt => _formatDateTime(createdAt);
 
-  /// 업데이트 시간 포맷 (MM/dd HH:mm)
+  /// 업데이트 시간 포맷 (MM/dd HH:mm:ss)
   String get formattedUpdatedAt => _formatDateTime(updatedAt);
 
-  /// 대응 시작 시간 포맷 (MM/dd HH:mm 시작)
+  /// 대응 시작 시간 포맷 (MM/dd HH:mm:ss 시작)
   String? get formattedResponseStartedAt {
     final time = responseStartedAt;
     if (time == null) return null;
@@ -169,7 +169,8 @@ class SystemLogEntity {
     final day = dt.day.toString().padLeft(2, '0');
     final hour = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
-    return '$month/$day $hour:$minute';
+    final second = dt.second.toString().padLeft(2, '0');
+    return '$month/$day $hour:$minute:$second';
   }
 
   // ===== 비즈니스 로직 =====

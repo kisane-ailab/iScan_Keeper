@@ -177,6 +177,21 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
   Future<void> deleteSystemLog(String id) async {
     logger.d('시스템 로그 삭제: $id');
 
+    // 대응 중인지 확인
+    final log = await _client
+        .from('system_logs')
+        .select('id, response_status, current_responder_id')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (log != null) {
+      final status = log['response_status'] as String?;
+      final responderId = log['current_responder_id'] as String?;
+      if (status == 'in_progress' && responderId != null) {
+        throw Exception('대응 중인 이벤트는 삭제할 수 없습니다');
+      }
+    }
+
     await _client.from('system_logs').delete().eq('id', id);
 
     logger.i('시스템 로그 삭제 완료: $id');
@@ -185,6 +200,22 @@ class SystemLogRemoteDatasourceImpl implements SystemLogRemoteDatasource {
   @override
   Future<void> deleteSystemLogs(List<String> ids) async {
     logger.d('시스템 로그 일괄 삭제: ${ids.length}건');
+
+    // 대응 중인 로그가 있는지 확인
+    final logs = await _client
+        .from('system_logs')
+        .select('id, response_status, current_responder_id')
+        .inFilter('id', ids);
+
+    final inProgressLogs = logs.where((log) {
+      final status = log['response_status'] as String?;
+      final responderId = log['current_responder_id'] as String?;
+      return status == 'in_progress' && responderId != null;
+    }).toList();
+
+    if (inProgressLogs.isNotEmpty) {
+      throw Exception('대응 중인 이벤트가 ${inProgressLogs.length}건 포함되어 삭제할 수 없습니다');
+    }
 
     await _client.from('system_logs').delete().inFilter('id', ids);
 
