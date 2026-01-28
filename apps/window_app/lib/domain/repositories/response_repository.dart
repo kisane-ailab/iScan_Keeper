@@ -29,6 +29,15 @@ abstract class ResponseRepository {
     String? memo,
   });
 
+  /// 대응 완료 (향상된 콘텐츠 지원)
+  Future<void> completeResponseWithContent({
+    required String eventLogId,
+    required String userId,
+    String? memo,
+    Map<String, dynamic>? content,
+    List<Map<String, dynamic>>? attachments,
+  });
+
   /// 내 대응 기록 조회
   Future<List<Map<String, dynamic>>> getMyResponses(String userId);
 

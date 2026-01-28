@@ -5,8 +5,11 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   desktop_updater
+  file_selector_windows
   flutter_inappwebview_windows
+  image_compression_flutter
   local_notifier
+  pasteboard
   screen_retriever_windows
   tray_manager
   url_launcher_windows

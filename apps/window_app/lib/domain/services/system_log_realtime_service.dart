@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/notification_settings.dart';
 import 'package:window_app/data/models/system_log_model.dart';
 import 'package:window_app/data/repositories/system_log_repository_impl.dart';
@@ -682,6 +683,62 @@ class SystemLogRealtimeService extends _$SystemLogRealtimeService {
       _logger.e('로그 일괄 삭제 실패: ${ids.length}건', error: e);
       rethrow;
     }
+  }
+
+  /// 대응 상태 로컬 업데이트 (실시간 이벤트 대기 없이 즉시 UI 반영)
+  /// [clearResponder] true일 경우 responderId/responderName을 null로 설정
+  Future<void> updateResponseStatus({
+    required String logId,
+    required ResponseStatus status,
+    String? responderId,
+    String? responderName,
+    DateTime? responseStartedAt,
+    bool clearResponder = false,
+  }) async {
+    _logger.i('로컬 대응 상태 업데이트: $logId → ${status.value}');
+
+    final newState = state.map((log) {
+      if (log.id == logId) {
+        // clearResponder가 true면 명시적으로 null 설정
+        if (clearResponder) {
+          return SystemLogEntity(
+            id: log.id,
+            source: log.source,
+            description: log.description,
+            category: log.category,
+            code: log.code,
+            logLevel: log.logLevel,
+            environment: log.environment,
+            payload: log.payload,
+            attachments: log.attachments,
+            responseStatus: status,
+            createdAt: log.createdAt,
+            updatedAt: log.updatedAt,
+            currentResponderId: null,
+            currentResponderName: null,
+            responseStartedAt: null,
+            organizationId: log.organizationId,
+            assignedById: log.assignedById,
+            assignedByName: log.assignedByName,
+            isMuted: log.isMuted,
+            site: log.site,
+          );
+        }
+        return log.copyWith(
+          responseStatus: status,
+          currentResponderId: responderId,
+          currentResponderName: responderName,
+          responseStartedAt: responseStartedAt,
+        );
+      }
+      return log;
+    }).toList();
+
+    state = newState;
+    await _saveToCache();
+
+    // 항상위 모드 재평가
+    await checkAndReleaseAlwaysOnTop();
   }
 
   /// 항상위 모드가 필요한 미대응 로그가 있는지 확인

@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:window_app/data/models/enums/response_status.dart';
 import 'package:window_app/data/models/notification_settings.dart';
 import 'package:window_app/data/models/user_model.dart';
 import 'package:window_app/data/repositories/response_repository_impl.dart';
@@ -91,6 +92,15 @@ class EventResponseService extends _$EventResponseService {
       // 내 대응 목록에 추가
       state = [...state, entity.id];
 
+      // 로컬 상태 즉시 업데이트 (실시간 이벤트 대기 없이 UI 반영)
+      await ref.read(systemLogRealtimeServiceProvider.notifier).updateResponseStatus(
+        logId: entity.id,
+        status: ResponseStatus.inProgress,
+        responderId: userId,
+        responderName: userName,
+        responseStartedAt: DateTime.now(),
+      );
+
       // 항상위 모드가 필요한 다른 미확인 로그가 없으면 해제
       if (AppTrayManager.isAlwaysOnTop) {
         final entities = ref.read(systemLogRealtimeServiceProvider);
@@ -145,6 +155,13 @@ class EventResponseService extends _$EventResponseService {
       // 내 대응 목록에서 제거
       state = state.where((id) => id != entity.id).toList();
 
+      // 로컬 상태 즉시 업데이트 (미대응으로 되돌림)
+      await ref.read(systemLogRealtimeServiceProvider.notifier).updateResponseStatus(
+        logId: entity.id,
+        status: ResponseStatus.unresponded,
+        clearResponder: true,
+      );
+
       logger.i('대응 포기: ${entity.id}');
       return true;
     } catch (e) {
@@ -173,7 +190,56 @@ class EventResponseService extends _$EventResponseService {
       // 내 대응 목록에서 제거
       state = state.where((id) => id != entity.id).toList();
 
+      // 로컬 상태 즉시 업데이트 (완료 상태)
+      await ref.read(systemLogRealtimeServiceProvider.notifier).updateResponseStatus(
+        logId: entity.id,
+        status: ResponseStatus.completed,
+      );
+
       logger.i('대응 완료: ${entity.id}');
+      return true;
+    } catch (e) {
+      logger.e('대응 완료 실패', error: e);
+      return false;
+    }
+  }
+
+  /// 대응 완료 (향상된 콘텐츠 지원)
+  Future<bool> completeResponseWithContent(
+    SystemLogEntity entity, {
+    Map<String, dynamic>? content,
+    List<Map<String, dynamic>>? attachments,
+  }) async {
+    try {
+      final userInfo = await _getCurrentUserInfo();
+
+      if (userInfo == null) return false;
+
+      final userId = userInfo['id'] as String;
+
+      // 마크다운 추출 (하위 호환성)
+      final memo = content?['markdown'] as String?;
+
+      // Repository를 통해 대응 완료
+      final responseRepository = ref.read(responseRepositoryProvider);
+      await responseRepository.completeResponseWithContent(
+        eventLogId: entity.id,
+        userId: userId,
+        memo: memo,
+        content: content,
+        attachments: attachments,
+      );
+
+      // 내 대응 목록에서 제거
+      state = state.where((id) => id != entity.id).toList();
+
+      // 로컬 상태 즉시 업데이트 (완료 상태)
+      await ref.read(systemLogRealtimeServiceProvider.notifier).updateResponseStatus(
+        logId: entity.id,
+        status: ResponseStatus.completed,
+      );
+
+      logger.i('대응 완료 (콘텐츠 포함): ${entity.id}');
       return true;
     } catch (e) {
       logger.e('대응 완료 실패', error: e);
@@ -220,6 +286,15 @@ class EventResponseService extends _$EventResponseService {
         assigneeName: assignee.name,
         assignerId: assignerId,
         assignerName: assignerName,
+      );
+
+      // 로컬 상태 즉시 업데이트 (대응중 상태)
+      await ref.read(systemLogRealtimeServiceProvider.notifier).updateResponseStatus(
+        logId: entity.id,
+        status: ResponseStatus.inProgress,
+        responderId: assignee.id,
+        responderName: assignee.name,
+        responseStartedAt: DateTime.now(),
       );
 
       logger.i('대응 할당 완료: ${entity.id} → ${assignee.name}');

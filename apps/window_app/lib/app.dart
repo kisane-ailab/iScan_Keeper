@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:desktop_updater/desktop_updater.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:window_app/domain/entities/system_log_entity.dart';
@@ -61,6 +63,16 @@ class _WindowAppState extends ConsumerState<WindowApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
       routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {
         return Stack(

@@ -36,6 +36,15 @@ abstract class ResponseRemoteDatasource {
     String? memo,
   });
 
+  /// 대응 완료 (향상된 콘텐츠 지원)
+  Future<void> completeWithContent({
+    required String eventLogId,
+    required String userId,
+    String? memo,
+    Map<String, dynamic>? content,
+    List<Map<String, dynamic>>? attachments,
+  });
+
   /// 내 대응 기록 조회
   Future<List<Map<String, dynamic>>> getMyResponses(String userId);
 
@@ -193,6 +202,51 @@ class ResponseRemoteDatasourceImpl implements ResponseRemoteDatasource {
     }).eq('id', eventLogId);
 
     logger.i('대응 완료: $eventLogId');
+  }
+
+  @override
+  Future<void> completeWithContent({
+    required String eventLogId,
+    required String userId,
+    String? memo,
+    Map<String, dynamic>? content,
+    List<Map<String, dynamic>>? attachments,
+  }) async {
+    logger.d('대응 완료 요청 (콘텐츠 포함): eventLogId=$eventLogId');
+
+    final updateData = <String, dynamic>{
+      'completed_at': DateTime.now().toIso8601String(),
+    };
+
+    // 기존 memo 필드도 유지 (하위 호환성)
+    if (memo != null) {
+      updateData['memo'] = memo;
+    } else if (content != null && content['markdown'] != null) {
+      updateData['memo'] = content['markdown'];
+    }
+
+    // 새 content, attachments 필드
+    if (content != null) {
+      updateData['content'] = content;
+    }
+    if (attachments != null) {
+      updateData['attachments'] = attachments;
+    }
+
+    // response_logs 완료 처리
+    await _client
+        .from('response_logs')
+        .update(updateData)
+        .eq('system_log_id', eventLogId)
+        .eq('user_id', userId)
+        .isFilter('completed_at', null);
+
+    // system_logs 완료 처리
+    await _client.from('system_logs').update({
+      'response_status': 'completed',
+    }).eq('id', eventLogId);
+
+    logger.i('대응 완료 (콘텐츠 포함): $eventLogId');
   }
 
   @override
