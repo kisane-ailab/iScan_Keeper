@@ -234,6 +234,53 @@ class SystemLogEntity {
     return buffer.toString();
   }
 
+  /// copyWith - 일부 필드만 변경한 새 Entity 생성
+  SystemLogEntity copyWith({
+    String? id,
+    String? source,
+    String? description,
+    LogCategory? category,
+    String? code,
+    LogLevel? logLevel,
+    Environment? environment,
+    Map<String, dynamic>? payload,
+    Map<String, dynamic>? attachments,
+    ResponseStatus? responseStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? currentResponderId,
+    String? currentResponderName,
+    DateTime? responseStartedAt,
+    String? organizationId,
+    String? assignedById,
+    String? assignedByName,
+    bool? isMuted,
+    String? site,
+  }) {
+    return SystemLogEntity(
+      id: id ?? this.id,
+      source: source ?? this.source,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      code: code ?? this.code,
+      logLevel: logLevel ?? this.logLevel,
+      environment: environment ?? this.environment,
+      payload: payload ?? this.payload,
+      attachments: attachments ?? this.attachments,
+      responseStatus: responseStatus ?? this.responseStatus,
+      createdAt: createdAt ?? _createdAtUtc,
+      updatedAt: updatedAt ?? _updatedAtUtc,
+      currentResponderId: currentResponderId ?? this.currentResponderId,
+      currentResponderName: currentResponderName ?? this.currentResponderName,
+      responseStartedAt: responseStartedAt ?? _responseStartedAtUtc,
+      organizationId: organizationId ?? this.organizationId,
+      assignedById: assignedById ?? this.assignedById,
+      assignedByName: assignedByName ?? this.assignedByName,
+      isMuted: isMuted ?? this.isMuted,
+      site: site ?? this.site,
+    );
+  }
+
   /// Entity → JSON (캐시 저장용)
   Map<String, dynamic> toJson() {
     return {

@@ -74,6 +74,25 @@ class ResponseRepositoryImpl implements ResponseRepository {
   }
 
   @override
+  Future<void> completeResponseWithContent({
+    required String eventLogId,
+    required String userId,
+    String? memo,
+    Map<String, dynamic>? content,
+    List<Map<String, dynamic>>? attachments,
+  }) async {
+    logger.d('Repository: 대응 완료 (콘텐츠 포함) - eventLogId=$eventLogId');
+
+    await _remoteDatasource.completeWithContent(
+      eventLogId: eventLogId,
+      userId: userId,
+      memo: memo,
+      content: content,
+      attachments: attachments,
+    );
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getMyResponses(String userId) async {
     return await _remoteDatasource.getMyResponses(userId);
   }

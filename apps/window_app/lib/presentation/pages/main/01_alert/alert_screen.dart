@@ -24,6 +24,7 @@ import 'package:window_app/presentation/pages/main/05_health_check/health_check_
     show GroupingMode;
 import 'package:window_app/presentation/widgets/admin_label.dart';
 import 'package:window_app/presentation/widgets/mute_rule_dialog.dart';
+import 'package:window_app/presentation/widgets/response_complete_dialog.dart';
 import 'package:window_app/domain/services/mute_rule_service.dart';
 import 'package:window_app/domain/services/read_status_service.dart';
 import 'package:window_app/domain/services/system_log_realtime_service.dart' show systemLogRealtimeServiceProvider;
@@ -1290,56 +1291,24 @@ class _AlertTabContent extends HookConsumerWidget {
 
   Future<void> _showCompleteDialog(
       BuildContext context, WidgetRef ref, SystemLogEntity entity) async {
-    final memoController = TextEditingController();
-
-    final confirmed = await showCupertinoDialog<bool>(
+    final result = await ResponseCompleteDialog.show(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('대응 완료'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Column(
-            children: [
-              const Text('조치 내역을 입력해주세요:'),
-              const SizedBox(height: 12),
-              CupertinoTextField(
-                controller: memoController,
-                placeholder: '조치 내역...',
-                maxLines: 3,
-                padding: const EdgeInsets.all(12),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('완료'),
-          ),
-        ],
-      ),
+      ref: ref,
+      entity: entity,
     );
 
-    if (confirmed == true) {
-      final service = ref.read(eventResponseServiceProvider.notifier);
-      final success =
-          await service.completeResponse(entity, memoController.text);
-
-      if (context.mounted) {
-        _showCupertinoToast(
-          context,
-          success ? '대응을 완료했습니다' : '대응 완료에 실패했습니다',
-          success,
-        );
+    if (context.mounted) {
+      if (result == null) {
+        // 사용자가 취소함
+        _showCupertinoToastWarning(context, '대응 완료가 취소되었습니다');
+      } else if (result) {
+        // 성공
+        _showCupertinoToast(context, '대응을 완료했습니다', true);
+      } else {
+        // 실패
+        _showCupertinoToast(context, '대응 완료에 실패했습니다', false);
       }
     }
-
-    memoController.dispose();
   }
 
   void _showCupertinoToast(BuildContext context, String message, bool success) {
@@ -1360,6 +1329,28 @@ class _AlertTabContent extends HookConsumerWidget {
         ),
         backgroundColor:
             success ? CupertinoColors.systemGreen : CupertinoColors.systemRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showCupertinoToastWarning(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              CupertinoIcons.info_circle_fill,
+              color: CupertinoColors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
+        backgroundColor: CupertinoColors.systemOrange,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
